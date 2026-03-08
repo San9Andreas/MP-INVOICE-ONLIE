@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard';
 import InvoiceForm from './components/InvoiceForm';
 import InvoicePreview from './components/InvoicePreview';
 import InvoiceHistory from './components/InvoiceHistory';
+import FinancialDashboard from './components/FinancialDashboard';
 import { Loader2, FileText } from 'lucide-react';
 
 function AppContent() {
@@ -93,6 +94,9 @@ function AppContent() {
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
+        )}
+        {currentPage === 'financial' && (
+          <FinancialDashboard onBack={() => navigate('dashboard')} />
         )}
         {currentPage === 'history' && (
           <InvoiceHistory onView={handleView} onEdit={handleEdit} />

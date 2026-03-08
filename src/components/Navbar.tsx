@@ -3,7 +3,7 @@ import { useInvoices } from '../store/invoices';
 import type { Page } from '../types';
 import {
   FileText, LayoutDashboard, FilePlus, Clock, LogOut, Shield, UserCheck, ChevronDown, Menu, X,
-  Cloud, HardDrive, Wifi, WifiOff,
+  Cloud, HardDrive, Wifi, WifiOff, BarChart3,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -20,6 +20,7 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
 
   const links: { page: Page; label: string; icon: React.ReactNode }[] = [
     { page: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { page: 'financial', label: 'Financial', icon: <BarChart3 className="w-4 h-4" /> },
     { page: 'create', label: 'New Invoice', icon: <FilePlus className="w-4 h-4" /> },
     { page: 'history', label: 'History', icon: <Clock className="w-4 h-4" /> },
   ];

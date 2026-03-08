@@ -4,7 +4,7 @@ import type { Page } from '../types';
 import {
   FilePlus, Clock, DollarSign, FileText, TrendingUp, Users, AlertTriangle,
   ArrowRight, Shield, UserCheck, CheckCircle, Send, FileWarning,
-  Cloud, HardDrive, Wifi, Database,
+  Cloud, HardDrive, Wifi, Database, BarChart3,
 } from 'lucide-react';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -82,7 +82,13 @@ export default function Dashboard({ onNavigate, onView }: Props) {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+            <button
+              onClick={() => onNavigate('financial')}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all shadow-md shadow-indigo-500/20"
+            >
+              <BarChart3 className="w-4 h-4" /> Financial Dashboard
+            </button>
             <button
               onClick={() => onNavigate('create')}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500 transition-all shadow-md shadow-indigo-500/20"

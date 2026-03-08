@@ -60,4 +60,4 @@ export interface Invoice {
   createdByRole: UserRole;
 }
 
-export type Page = 'dashboard' | 'create' | 'edit' | 'preview' | 'history';
+export type Page = 'dashboard' | 'create' | 'edit' | 'preview' | 'history' | 'financial';
