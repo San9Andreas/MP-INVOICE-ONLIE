@@ -87,7 +87,8 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
   };
 
   // Stats
-  const totalRevenue = invoices.reduce((s, i) => s + (i.status === 'paid' ? i.total : 0), 0);
+  const totalCollected = invoices.reduce((s, i) => s + (i.paidAmount || 0), 0);
+  const totalOutstanding = invoices.reduce((s, i) => s + Math.max(0, (i.balanceDue ?? i.total - (i.paidAmount || 0))), 0);
   const uniqueClients = new Set(invoices.map(i => i.clientEmail || i.clientName).filter(Boolean)).size;
 
   return (
@@ -109,9 +110,10 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs font-semibold text-slate-400 uppercase">Revenue</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">Collected</span>
           </div>
-          <p className="text-2xl font-bold text-emerald-600">${totalRevenue.toFixed(0)}</p>
+          <p className="text-2xl font-bold text-emerald-600">Ks{totalCollected.toFixed(0)}</p>
+          <p className="text-xs text-slate-400 mt-0.5">Outstanding: <span className="text-red-500 font-semibold">Ks{totalOutstanding.toFixed(0)}</span></p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
@@ -198,6 +200,8 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                     >
                       <span className="flex items-center gap-1 justify-end">Amount <ArrowUpDown className="w-3 h-3" /></span>
                     </th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Paid</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Balance</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Created By</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Actions</th>
                   </tr>
@@ -221,6 +225,21 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                       </td>
                       <td className="px-4 py-3.5 text-slate-600 text-sm">{new Date(inv.date + 'T00:00:00').toLocaleDateString()}</td>
                       <td className="px-4 py-3.5 text-right font-semibold text-slate-800">{fmt(inv.total, inv.currency)}</td>
+                      <td className="px-4 py-3.5 text-right">
+                        <span className={`text-sm font-medium ${(inv.paidAmount || 0) > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {(inv.paidAmount || 0) > 0 ? fmt(inv.paidAmount || 0, inv.currency) : '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        {(() => {
+                          const bal = Math.max(0, inv.balanceDue ?? (inv.total - (inv.paidAmount || 0)));
+                          return (
+                            <span className={`text-sm font-bold ${bal <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {bal <= 0 ? '✓ Paid' : fmt(bal, inv.currency)}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm text-slate-600">{inv.createdByName}</span>
@@ -272,6 +291,17 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                     <div className="flex items-center gap-3 text-xs text-slate-500">
                       <span>{new Date(inv.date + 'T00:00:00').toLocaleDateString()}</span>
                       <span className="font-semibold text-slate-800 text-sm">{fmt(inv.total, inv.currency)}</span>
+                      {(inv.paidAmount || 0) > 0 && (
+                        <span className="text-emerald-600 font-medium">Paid: {fmt(inv.paidAmount || 0, inv.currency)}</span>
+                      )}
+                      {(() => {
+                        const bal = Math.max(0, inv.balanceDue ?? (inv.total - (inv.paidAmount || 0)));
+                        return bal > 0 ? (
+                          <span className="text-red-600 font-bold">Due: {fmt(bal, inv.currency)}</span>
+                        ) : (inv.paidAmount || 0) > 0 ? (
+                          <span className="text-emerald-600 font-bold">✓ Paid</span>
+                        ) : null;
+                      })()}
                     </div>
                     <div className="flex items-center gap-1">
                       <button onClick={() => onView(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">

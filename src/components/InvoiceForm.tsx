@@ -50,7 +50,7 @@ function getDefaultInvoice(userName: string, userId: string, userRole: 'owner' |
     senderName: '', senderEmail: '', senderPhone: '', senderWebsite: '', senderAddress: '', senderCity: '',
     clientName: '', clientCompany: '', clientEmail: '', clientPhone: '', clientAddress: '', clientCity: '',
     items: [{ id: uuidv4(), description: '', quantity: 1, rate: 0, amount: 0 }],
-    subtotal: 0, taxRate: 0, taxAmount: 0, discountRate: 0, discountAmount: 0, total: 0,
+    subtotal: 0, taxRate: 0, taxAmount: 0, discountRate: 0, discountAmount: 0, total: 0, paidAmount: 0, balanceDue: 0,
     notes: '', terms: 'Payment is due within 30 days of the invoice date.',
     createdBy: userId,
     createdByName: userName,
@@ -126,8 +126,9 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
     const taxAmount = subtotal * (invoice.taxRate / 100);
     const discountAmount = subtotal * (invoice.discountRate / 100);
     const total = subtotal + taxAmount - discountAmount;
-    return { subtotal, taxAmount, discountAmount, total };
-  }, [invoice.items, invoice.taxRate, invoice.discountRate]);
+    const balanceDue = total - invoice.paidAmount;
+    return { subtotal, taxAmount, discountAmount, total, balanceDue };
+  }, [invoice.items, invoice.taxRate, invoice.discountRate, invoice.paidAmount]);
 
   useEffect(() => {
     setInvoice(prev => ({
@@ -136,6 +137,7 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
       taxAmount: calculations.taxAmount,
       discountAmount: calculations.discountAmount,
       total: calculations.total,
+      balanceDue: calculations.balanceDue,
     }));
   }, [calculations]);
 
@@ -470,6 +472,31 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
               <div className="border-t border-slate-200 pt-3 flex justify-between">
                 <span className="text-base font-bold text-slate-800">Total</span>
                 <span className="text-xl font-bold text-indigo-600">{formatCurrency(calculations.total, invoice.currency)}</span>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <div className="flex items-center gap-1 text-sm text-emerald-600 font-medium">
+                  <DollarSign className="w-3 h-3" /> Paid
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={invoice.paidAmount}
+                  onChange={e => updateField('paidAmount', parseFloat(e.target.value) || 0)}
+                  className="w-28 px-2 py-1 text-sm border border-emerald-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-emerald-50"
+                  placeholder="0.00"
+                />
+                <span className="ml-auto text-sm font-medium text-emerald-600">
+                  {formatCurrency(invoice.paidAmount, invoice.currency)}
+                </span>
+              </div>
+              <div className={`border-t-2 pt-3 flex justify-between ${calculations.balanceDue <= 0 ? 'border-emerald-300' : 'border-red-300'}`}>
+                <span className={`text-base font-bold ${calculations.balanceDue <= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                  {calculations.balanceDue <= 0 ? '✓ Fully Paid' : 'Balance Due'}
+                </span>
+                <span className={`text-xl font-bold ${calculations.balanceDue <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {formatCurrency(Math.max(0, calculations.balanceDue), invoice.currency)}
+                </span>
               </div>
             </div>
           </div>

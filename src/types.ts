@@ -49,6 +49,8 @@ export interface Invoice {
   discountRate: number;
   discountAmount: number;
   total: number;
+  paidAmount: number;
+  balanceDue: number;
 
   notes: string;
   terms: string;

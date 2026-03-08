@@ -38,8 +38,9 @@ export default function Dashboard({ onNavigate, onView }: Props) {
   const { invoices, storageMode, firestoreConnected, firestoreError } = useInvoices();
   const { user, isOwner } = useAuth();
 
-  const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.total, 0);
-  const pendingAmount = invoices.filter(i => i.status === 'sent' || i.status === 'overdue').reduce((s, i) => s + i.total, 0);
+  const totalRevenue = invoices.reduce((s, i) => s + (i.paidAmount || 0), 0);
+  const totalBilled = invoices.reduce((s, i) => s + i.total, 0);
+  const totalBalance = invoices.reduce((s, i) => s + Math.max(0, (i.balanceDue ?? i.total - (i.paidAmount || 0))), 0);
   const overdueCount = invoices.filter(i => i.status === 'overdue').length;
   const uniqueClients = new Set(invoices.map(i => i.clientEmail || i.clientName).filter(Boolean)).size;
 
@@ -181,7 +182,7 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             <span className="text-xs font-semibold text-slate-400 uppercase">Total</span>
           </div>
           <p className="text-3xl font-bold text-slate-800">{invoices.length}</p>
-          <p className="text-xs text-slate-500 mt-1">Invoices created</p>
+          <p className="text-xs text-slate-500 mt-1">Billed: Ks{totalBilled.toFixed(0)}</p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -189,10 +190,10 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-emerald-600" />
             </div>
-            <span className="text-xs font-semibold text-slate-400 uppercase">Revenue</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">Collected</span>
           </div>
-          <p className="text-3xl font-bold text-emerald-600">${totalRevenue.toFixed(0)}</p>
-          <p className="text-xs text-slate-500 mt-1">Paid invoices</p>
+          <p className="text-3xl font-bold text-emerald-600">Ks{totalRevenue.toFixed(0)}</p>
+          <p className="text-xs text-slate-500 mt-1">Total paid amount</p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -200,10 +201,10 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-amber-600" />
             </div>
-            <span className="text-xs font-semibold text-slate-400 uppercase">Pending</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">Outstanding</span>
           </div>
-          <p className="text-3xl font-bold text-amber-600">${pendingAmount.toFixed(0)}</p>
-          <p className="text-xs text-slate-500 mt-1">Awaiting payment</p>
+          <p className="text-3xl font-bold text-amber-600">Ks{totalBalance.toFixed(0)}</p>
+          <p className="text-xs text-slate-500 mt-1">Total balance due</p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -313,6 +314,9 @@ export default function Dashboard({ onNavigate, onView }: Props) {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-slate-800">{fmt(inv.total, inv.currency)}</p>
+                  {(inv.paidAmount || 0) > 0 && (
+                    <p className="text-xs text-emerald-600 mt-0.5">Paid: {fmt(inv.paidAmount || 0, inv.currency)}</p>
+                  )}
                   <p className="text-xs text-slate-400 mt-0.5">{new Date(inv.date + 'T00:00:00').toLocaleDateString()}</p>
                 </div>
               </button>

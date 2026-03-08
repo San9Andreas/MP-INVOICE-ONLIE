@@ -132,7 +132,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
 
         <div className="p-6 sm:p-8 space-y-8">
           {/* Dates + Amount */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase">Invoice Date</p>
               <p className="text-sm font-medium text-slate-800 mt-1">{fmtDate(invoice.date)}</p>
@@ -148,6 +148,16 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase">Amount Due</p>
               <p className="text-xl font-bold text-indigo-600 mt-1">{fmt(invoice.total, invoice.currency)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase">Paid</p>
+              <p className="text-xl font-bold text-emerald-600 mt-1">{fmt(invoice.paidAmount || 0, invoice.currency)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase">Balance Due</p>
+              <p className={`text-xl font-bold mt-1 ${(invoice.balanceDue ?? invoice.total) <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {fmt(Math.max(0, invoice.balanceDue ?? invoice.total), invoice.currency)}
+              </p>
             </div>
           </div>
 
@@ -229,6 +239,20 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
               <div className="border-t-2 border-slate-200 pt-3 flex justify-between">
                 <span className="text-base font-bold text-slate-800">Total</span>
                 <span className="text-xl font-bold text-indigo-600">{fmt(invoice.total, invoice.currency)}</span>
+              </div>
+              {(invoice.paidAmount || 0) > 0 && (
+                <div className="flex justify-between text-sm pt-2">
+                  <span className="text-emerald-600 font-medium">Paid Amount</span>
+                  <span className="font-semibold text-emerald-600">-{fmt(invoice.paidAmount || 0, invoice.currency)}</span>
+                </div>
+              )}
+              <div className={`border-t-2 pt-3 flex justify-between ${(invoice.balanceDue ?? invoice.total) <= 0 ? 'border-emerald-300' : 'border-red-300'}`}>
+                <span className={`text-base font-bold ${(invoice.balanceDue ?? invoice.total) <= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                  {(invoice.balanceDue ?? invoice.total) <= 0 ? '✓ Fully Paid' : 'Balance Due'}
+                </span>
+                <span className={`text-xl font-bold ${(invoice.balanceDue ?? invoice.total) <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {fmt(Math.max(0, invoice.balanceDue ?? invoice.total), invoice.currency)}
+                </span>
               </div>
             </div>
           </div>
