@@ -25,6 +25,29 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
     { page: 'history', label: 'History', icon: <Clock className="w-4 h-4" /> },
   ];
 
+  // Avatar component — shows Google profile picture or fallback initial
+  const Avatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => {
+    const sizeClass = size === 'md' ? 'w-10 h-10' : 'w-8 h-8';
+    const textClass = size === 'md' ? 'text-base' : 'text-sm';
+
+    if (user?.photoURL) {
+      return (
+        <img
+          src={user.photoURL}
+          alt={user.name}
+          className={`${sizeClass} rounded-full object-cover ring-2 ring-white shadow-sm`}
+          referrerPolicy="no-referrer"
+        />
+      );
+    }
+
+    return (
+      <div className={`${sizeClass} bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white ${textClass} font-bold ring-2 ring-white shadow-sm`}>
+        {user?.name?.charAt(0).toUpperCase() || '?'}
+      </div>
+    );
+  };
+
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -110,11 +133,9 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
             <div className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-all"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 transition-all"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </div>
+                <Avatar size="sm" />
                 <span className="hidden sm:block text-sm font-medium text-slate-700 max-w-[120px] truncate">
                   {user?.name}
                 </span>
@@ -124,11 +145,17 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
               {profileOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-                  <div className="absolute right-0 top-12 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-2">
+                  <div className="absolute right-0 top-12 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-2">
+                    {/* Profile header */}
                     <div className="px-4 py-3 border-b border-slate-100">
-                      <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
-                      <p className="text-xs text-slate-500">{user?.email}</p>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-3">
+                        <Avatar size="md" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{user?.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                           isOwner ? 'bg-amber-50 text-amber-700' : 'bg-sky-50 text-sky-700'
                         }`}>
@@ -148,6 +175,7 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
                         </span>
                       </div>
                     </div>
+                    {/* Sign out button */}
                     <button
                       onClick={() => { logout(); setProfileOpen(false); }}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-all"
@@ -174,6 +202,20 @@ export default function Navbar({ currentPage, onNavigate }: NavbarProps) {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1">
+          {/* Mobile user info */}
+          <div className="flex items-center gap-3 px-3 py-2.5 mb-2 bg-slate-50 rounded-xl">
+            <Avatar size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-700 truncate">{user?.name}</p>
+              <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+              isOwner ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'
+            }`}>
+              {isOwner ? 'Owner' : 'Staff'}
+            </span>
+          </div>
+
           {/* Mobile storage badge */}
           <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium mb-2 ${
             storageMode === 'firestore' && firestoreConnected

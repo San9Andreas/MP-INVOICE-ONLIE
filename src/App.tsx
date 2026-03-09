@@ -12,7 +12,7 @@ import FinancialDashboard from './components/FinancialDashboard';
 import { Loader2, FileText } from 'lucide-react';
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, authLoading } = useAuth();
   const { deleteInvoice, loading } = useInvoices();
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -46,10 +46,30 @@ function AppContent() {
     setSelectedInvoiceId(null);
   }, []);
 
+  // ── Auth loading screen (checking onAuthStateChanged) ─────
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/30 mb-4">
+            <FileText className="w-8 h-8 text-white" />
+          </div>
+          <div className="flex items-center justify-center gap-2 text-white">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span className="text-lg font-medium">Checking session...</span>
+          </div>
+          <p className="text-sm text-slate-400 mt-2">Verifying authentication</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Not authenticated — show login ────────────────────────
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
+  // ── Invoice data loading ──────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">

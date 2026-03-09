@@ -1,7 +1,10 @@
+import { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import { useInvoices } from '../store/invoices';
 import { useAuth } from '../store/auth';
 import {
   ArrowLeft, Printer, Download, Edit, Trash2, Mail, Phone, Globe, MapPin, Shield,
+  Image, Loader2,
 } from 'lucide-react';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -38,6 +41,8 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
   const { getInvoice } = useInvoices();
   const { isOwner } = useAuth();
   const invoice = getInvoice(invoiceId);
+  const invoiceDocRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
 
   if (!invoice) {
     return (
@@ -60,6 +65,93 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadJPEG = async () => {
+    if (!invoiceDocRef.current || downloading) return;
+    setDownloading(true);
+
+    try {
+      const el = invoiceDocRef.current;
+
+      // Create a clone so we don't mutate the visible DOM
+      const clone = el.cloneNode(true) as HTMLElement;
+      clone.style.width = '900px';
+      clone.style.minWidth = '900px';
+      clone.style.maxWidth = '900px';
+      clone.style.position = 'fixed';
+      clone.style.top = '-99999px';
+      clone.style.left = '-99999px';
+      clone.style.zIndex = '-1';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.borderRadius = '0';
+      document.body.appendChild(clone);
+
+      // Wait for the clone to render
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 900,
+        windowWidth: 900,
+        onclone: (clonedDoc) => {
+          const clonedEl = clonedDoc.body.querySelector('[data-invoice-doc]') || clonedDoc.body.firstElementChild;
+          if (clonedEl) {
+            (clonedEl as HTMLElement).style.borderRadius = '0';
+            (clonedEl as HTMLElement).style.overflow = 'visible';
+          }
+        },
+      });
+
+      // Remove clone from DOM
+      document.body.removeChild(clone);
+
+      // Use toDataURL (more reliable than toBlob across browsers)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `${invoice.invoiceNumber || 'invoice'}.jpg`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+
+      setDownloading(false);
+    } catch (err) {
+      console.error('JPEG generation error:', err);
+      setDownloading(false);
+
+      // Fallback: try without cloning
+      try {
+        const el = invoiceDocRef.current;
+        if (!el) return;
+        const canvas = await html2canvas(el, {
+          scale: 1,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `${invoice.invoiceNumber || 'invoice'}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (fallbackErr) {
+        console.error('Fallback JPEG generation also failed:', fallbackErr);
+        alert('Could not generate JPEG. Try using Print → Save as PDF instead.');
+      }
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6">
       {/* Toolbar - hidden in print */}
@@ -80,7 +172,26 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
             <Printer className="w-4 h-4" /> Print
           </button>
           <button onClick={handleDownloadJSON} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all">
-            <Download className="w-4 h-4" /> Download
+            <Download className="w-4 h-4" /> JSON
+          </button>
+          <button
+            onClick={handleDownloadJPEG}
+            disabled={downloading}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              downloading
+                ? 'bg-amber-100 text-amber-700 cursor-wait'
+                : 'bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:from-orange-600 hover:to-pink-600 shadow-sm hover:shadow-md'
+            }`}
+          >
+            {downloading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+              </>
+            ) : (
+              <>
+                <Image className="w-4 h-4" /> Download JPEG
+              </>
+            )}
           </button>
           {isOwner && (
             <>
@@ -109,8 +220,13 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
         </div>
       )}
 
-      {/* Invoice Document */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden print:shadow-none print:border-none print:rounded-none" id="invoice-doc">
+      {/* Invoice Document — captured by html2canvas */}
+      <div
+        ref={invoiceDocRef}
+        data-invoice-doc="true"
+        className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden print:shadow-none print:border-none print:rounded-none"
+        id="invoice-doc"
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -278,6 +394,19 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
           {/* Footer */}
           <div className="text-center pt-6 border-t border-slate-100">
             <p className="text-xs text-slate-400">Created by {invoice.createdByName} • {new Date(invoice.createdAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Download JPEG info banner — hidden in print */}
+      <div className="mt-4 p-4 bg-gradient-to-r from-orange-50 to-pink-50 border border-orange-200 rounded-xl print:hidden">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500 to-pink-500 rounded-xl flex items-center justify-center">
+            <Image className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-700">Download as Image</p>
+            <p className="text-xs text-slate-500">Click the <strong>"Download JPEG"</strong> button above to save this invoice as a high-resolution JPEG image file. Perfect for sharing via messaging apps or social media.</p>
           </div>
         </div>
       </div>
