@@ -15,6 +15,13 @@ function fmt(amount: number, currency: string) {
   return `${CURRENCY_SYMBOLS[currency] || 'Ks'}${amount.toFixed(2)}`;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'မူကြမ်း',
+  sent: 'ပို့ပြီး',
+  paid: 'ပေးပြီး',
+  overdue: 'ရက်လွန်',
+};
+
 const STATUS_STYLES: Record<string, string> = {
   draft: 'bg-slate-100 text-slate-700',
   sent: 'bg-blue-100 text-blue-700',
@@ -60,14 +67,14 @@ export default function Dashboard({ onNavigate, onView }: Props) {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
-              Welcome back, {user?.name?.split(' ')[0]} 👋
+              ပြန်လာတာ ကြိုဆိုပါတယ်, {user?.name?.split(' ')[0]} 👋
             </h1>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
                 isOwner ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-sky-50 text-sky-700 border border-sky-200'
               }`}>
                 {isOwner ? <Shield className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
-                {isOwner ? 'Owner — Full Access' : 'Staff — View & Create'}
+                {isOwner ? 'ပိုင်ရှင် — အပြည့်အဝ အသုံးပြုခွင့်' : 'ဝန်ထမ်း — ကြည့်ရှု၊ ဖန်တီး နှင့် ပြင်ဆင်ခွင့်'}
               </span>
               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
                 storageMode === 'firestore' && firestoreConnected
@@ -75,7 +82,7 @@ export default function Dashboard({ onNavigate, onView }: Props) {
                   : 'bg-slate-100 text-slate-600 border border-slate-200'
               }`}>
                 {storageMode === 'firestore' && firestoreConnected ? (
-                  <><Cloud className="w-3 h-3" /> Firestore Connected</>
+                  <><Cloud className="w-3 h-3" /> Firestore ချိတ်ဆက်ပြီး</>
                 ) : (
                   <><HardDrive className="w-3 h-3" /> Local Storage</>
                 )}
@@ -87,19 +94,19 @@ export default function Dashboard({ onNavigate, onView }: Props) {
               onClick={() => onNavigate('financial')}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all shadow-md shadow-indigo-500/20"
             >
-              <BarChart3 className="w-4 h-4" /> Financial Dashboard
+              <BarChart3 className="w-4 h-4" /> ငွေကြေးစီမံ
             </button>
             <button
               onClick={() => onNavigate('create')}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500 transition-all shadow-md shadow-indigo-500/20"
             >
-              <FilePlus className="w-4 h-4" /> New Invoice
+              <FilePlus className="w-4 h-4" /> ပြေစာအသစ်
             </button>
             <button
               onClick={() => onNavigate('history')}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50 transition-all"
             >
-              <Clock className="w-4 h-4" /> View History
+              <Clock className="w-4 h-4" /> မှတ်တမ်းကြည့်ရန်
             </button>
           </div>
         </div>
@@ -139,10 +146,10 @@ export default function Dashboard({ onNavigate, onView }: Props) {
                   : 'text-indigo-800'
               }`}>
                 {storageMode === 'firestore' && firestoreConnected
-                  ? '🔥 Firebase Firestore Connected'
+                  ? '🔥 Firebase Firestore ချိတ်ဆက်ပြီး'
                   : storageMode === 'firestore'
-                  ? '⚠️ Firestore Connection Issue'
-                  : '💾 Local Storage Mode'}
+                  ? '⚠️ Firestore ချိတ်ဆက်မှု ပြဿနာ'
+                  : '💾 Local Storage အသုံးပြုနေသည်'}
               </h3>
               {storageMode === 'firestore' && firestoreConnected && (
                 <Wifi className="w-4 h-4 text-emerald-500" />
@@ -156,15 +163,15 @@ export default function Dashboard({ onNavigate, onView }: Props) {
                 : 'text-indigo-700'
             }`}>
               {storageMode === 'firestore' && firestoreConnected
-                ? 'All invoice data is stored in Firebase Firestore and syncs in real-time across all devices and tabs.'
+                ? 'ပြေစာ အချက်အလက်အားလုံးကို Firebase Firestore တွင် သိမ်းဆည်းထားပြီး စက်အားလုံးတွင် အချိန်နှင့်တစ်ပြေးညီ sync ဖြစ်သည်။'
                 : storageMode === 'firestore' && firestoreError
-                ? `Connection issue: ${firestoreError}. Falling back to local storage.`
-                : 'Invoice data is stored locally in your browser. To enable cloud sync, configure Firebase environment variables (VITE_FIREBASE_*) and deploy with Firestore.'}
+                ? `ချိတ်ဆက်မှု ပြဿနာ: ${firestoreError}။ Local storage ကို ပြန်သုံးနေသည်။`
+                : 'ပြေစာ အချက်အလက်ကို ဘရောက်ဆာတွင် သိမ်းဆည်းထားသည်။ Cloud sync ဖွင့်ရန် Firebase environment variables (VITE_FIREBASE_*) သတ်မှတ်ပါ။'}
             </p>
             {storageMode === 'local' && (
               <div className="mt-3 p-3 bg-white/70 rounded-lg border border-indigo-100">
                 <p className="text-xs font-mono text-indigo-600 leading-relaxed">
-                  {`# Create a .env file with:\n`}
+                  {`# .env ဖိုင်ဖန်တီးပါ:\n`}
                   VITE_FIREBASE_API_KEY=your-key<br />
                   VITE_FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com<br />
                   VITE_FIREBASE_PROJECT_ID=your-project-id<br />
@@ -185,10 +192,10 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
               <FileText className="w-5 h-5 text-indigo-600" />
             </div>
-            <span className="text-xs font-semibold text-slate-400 uppercase">Total</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">စုစုပေါင်း</span>
           </div>
           <p className="text-3xl font-bold text-slate-800">{invoices.length}</p>
-          <p className="text-xs text-slate-500 mt-1">Billed: Ks{totalBilled.toFixed(0)}</p>
+          <p className="text-xs text-slate-500 mt-1">ငွေတောင်းခံ: Ks{totalBilled.toFixed(0)}</p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -196,10 +203,10 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-emerald-600" />
             </div>
-            <span className="text-xs font-semibold text-slate-400 uppercase">Collected</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">ရရှိပြီး</span>
           </div>
           <p className="text-3xl font-bold text-emerald-600">Ks{totalRevenue.toFixed(0)}</p>
-          <p className="text-xs text-slate-500 mt-1">Total paid amount</p>
+          <p className="text-xs text-slate-500 mt-1">ပေးပြီးငွေ စုစုပေါင်း</p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -207,10 +214,10 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-amber-600" />
             </div>
-            <span className="text-xs font-semibold text-slate-400 uppercase">Outstanding</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">ကျန်ရှိ</span>
           </div>
           <p className="text-3xl font-bold text-amber-600">Ks{totalBalance.toFixed(0)}</p>
-          <p className="text-xs text-slate-500 mt-1">Total balance due</p>
+          <p className="text-xs text-slate-500 mt-1">ကျန်ငွေ စုစုပေါင်း</p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -218,23 +225,23 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
               <Users className="w-5 h-5 text-purple-600" />
             </div>
-            <span className="text-xs font-semibold text-slate-400 uppercase">Clients</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">ဖောက်သည်</span>
           </div>
           <p className="text-3xl font-bold text-slate-800">{uniqueClients}</p>
-          <p className="text-xs text-slate-500 mt-1">Unique clients</p>
+          <p className="text-xs text-slate-500 mt-1">ဖောက်သည် အရေအတွက်</p>
         </div>
       </div>
 
       {/* Status Breakdown + Alert */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">Status Breakdown</h2>
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">အခြေအနေ ခွဲခြမ်းချက်</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {(Object.entries(statusCounts) as [string, number][]).map(([status, count]) => (
               <div key={status} className={`rounded-xl p-4 ${STATUS_STYLES[status]} bg-opacity-50`}>
                 <div className="flex items-center gap-2 mb-2">
                   {STATUS_ICONS[status]}
-                  <span className="text-xs font-semibold uppercase">{status}</span>
+                  <span className="text-xs font-semibold uppercase">{STATUS_LABELS[status] || status}</span>
                 </div>
                 <p className="text-2xl font-bold">{count}</p>
               </div>
@@ -246,27 +253,27 @@ export default function Dashboard({ onNavigate, onView }: Props) {
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-5 h-5 text-red-500" />
-              <h2 className="text-sm font-bold text-red-700 uppercase tracking-wider">Attention</h2>
+              <h2 className="text-sm font-bold text-red-700 uppercase tracking-wider">အရေးပေါ်</h2>
             </div>
             <p className="text-3xl font-bold text-red-600 mb-1">{overdueCount}</p>
             <p className="text-sm text-red-600">
-              overdue invoice{overdueCount > 1 ? 's' : ''} requiring immediate attention
+              ရက်လွန် ပြေစာ{overdueCount > 1 ? 'များ' : ''} ချက်ချင်း ဆောင်ရွက်ရန် လိုအပ်သည်
             </p>
             <button
               onClick={() => onNavigate('history')}
               className="mt-4 flex items-center gap-1 text-sm font-medium text-red-700 hover:text-red-800"
             >
-              View overdue <ArrowRight className="w-3.5 h-3.5" />
+              ရက်လွန်များ ကြည့်ရန် <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         ) : (
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-3">
               <CheckCircle className="w-5 h-5 text-emerald-500" />
-              <h2 className="text-sm font-bold text-emerald-700 uppercase tracking-wider">All Clear</h2>
+              <h2 className="text-sm font-bold text-emerald-700 uppercase tracking-wider">အားလုံး ကောင်းပါတယ်</h2>
             </div>
             <p className="text-sm text-emerald-600 mt-2">
-              No overdue invoices! All payments are on track.
+              ရက်လွန် ပြေစာ မရှိပါ! ပေးချေမှုအားလုံး မှန်ကန်နေပါသည်။
             </p>
           </div>
         )}
@@ -275,25 +282,25 @@ export default function Dashboard({ onNavigate, onView }: Props) {
       {/* Recent Invoices */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-slate-100">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Recent Invoices</h2>
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">မကြာမီက ပြေစာများ</h2>
           <button
             onClick={() => onNavigate('history')}
             className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
           >
-            View all <ArrowRight className="w-3 h-3" />
+            အားလုံးကြည့် <ArrowRight className="w-3 h-3" />
           </button>
         </div>
 
         {recentInvoices.length === 0 ? (
           <div className="p-10 text-center">
             <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No invoices yet</p>
-            <p className="text-sm text-slate-400 mt-1 mb-4">Create your first invoice to get started</p>
+            <p className="text-slate-500 font-medium">ပြေစာ မရှိသေးပါ</p>
+            <p className="text-sm text-slate-400 mt-1 mb-4">ပထမဆုံး ပြေစာ ဖန်တီးပါ</p>
             <button
               onClick={() => onNavigate('create')}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500"
             >
-              <FilePlus className="w-4 h-4" /> Create Invoice
+              <FilePlus className="w-4 h-4" /> ပြေစာ ဖန်တီးရန်
             </button>
           </div>
         ) : (
@@ -311,17 +318,17 @@ export default function Dashboard({ onNavigate, onView }: Props) {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-indigo-600 font-semibold">{inv.invoiceNumber}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${STATUS_STYLES[inv.status]}`}>
-                        {inv.status}
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_STYLES[inv.status]}`}>
+                        {STATUS_LABELS[inv.status] || inv.status}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-800 font-medium mt-0.5">{inv.clientName || 'Unnamed Client'}</p>
+                    <p className="text-sm text-slate-800 font-medium mt-0.5">{inv.clientName || 'အမည်မဖော်ပြ'}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-slate-800">{fmt(inv.total, inv.currency)}</p>
                   {(inv.paidAmount || 0) > 0 && (
-                    <p className="text-xs text-emerald-600 mt-0.5">Paid: {fmt(inv.paidAmount || 0, inv.currency)}</p>
+                    <p className="text-xs text-emerald-600 mt-0.5">ပေးပြီး: {fmt(inv.paidAmount || 0, inv.currency)}</p>
                   )}
                   <p className="text-xs text-slate-400 mt-0.5">{new Date(inv.date + 'T00:00:00').toLocaleDateString()}</p>
                 </div>
@@ -333,34 +340,34 @@ export default function Dashboard({ onNavigate, onView }: Props) {
 
       {/* Permissions Info */}
       <div className="mt-8 bg-slate-50 border border-slate-200 rounded-2xl p-6">
-        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">Role Permissions</h3>
+        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">ခွင့်ပြုချက်များ</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className={`rounded-xl p-4 border ${isOwner ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
             <div className="flex items-center gap-2 mb-3">
               <Shield className="w-5 h-5 text-amber-600" />
-              <span className="font-semibold text-slate-800">Owner</span>
-              {isOwner && <span className="px-2 py-0.5 bg-amber-200 text-amber-800 text-[10px] font-bold rounded-full uppercase">You</span>}
+              <span className="font-semibold text-slate-800">ပိုင်ရှင်</span>
+              {isOwner && <span className="px-2 py-0.5 bg-amber-200 text-amber-800 text-[10px] font-bold rounded-full uppercase">သင်</span>}
             </div>
             <ul className="space-y-1.5 text-sm text-slate-600">
-              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Create invoices</li>
-              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> View & search history</li>
-              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Edit any invoice</li>
-              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Delete any invoice</li>
-              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Print & download</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ပြေစာ ဖန်တီးခြင်း</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ကြည့်ရှု နှင့် ရှာဖွေခြင်း</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ပြေစာ ပြင်ဆင်ခြင်း</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ပြေစာ ဖျက်ခြင်း</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ပရင့်ထုတ် နှင့် ဒေါင်းလုဒ်</li>
             </ul>
           </div>
           <div className={`rounded-xl p-4 border ${!isOwner ? 'bg-sky-50 border-sky-200' : 'bg-white border-slate-200'}`}>
             <div className="flex items-center gap-2 mb-3">
               <UserCheck className="w-5 h-5 text-sky-600" />
-              <span className="font-semibold text-slate-800">Staff</span>
-              {!isOwner && <span className="px-2 py-0.5 bg-sky-200 text-sky-800 text-[10px] font-bold rounded-full uppercase">You</span>}
+              <span className="font-semibold text-slate-800">ဝန်ထမ်း</span>
+              {!isOwner && <span className="px-2 py-0.5 bg-sky-200 text-sky-800 text-[10px] font-bold rounded-full uppercase">သင်</span>}
             </div>
             <ul className="space-y-1.5 text-sm text-slate-600">
-              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Create invoices</li>
-              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> View & search history</li>
-              <li className="flex items-center gap-2 text-slate-400"><span className="w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex-shrink-0" /> Cannot edit invoices</li>
-              <li className="flex items-center gap-2 text-slate-400"><span className="w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex-shrink-0" /> Cannot delete invoices</li>
-              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Print & download</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ပြေစာ ဖန်တီးခြင်း</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ကြည့်ရှု နှင့် ရှာဖွေခြင်း</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ပြေစာ ပြင်ဆင်ခြင်း</li>
+              <li className="flex items-center gap-2 text-slate-400"><span className="w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex-shrink-0" /> ပြေစာ ဖျက်ခွင့် မရှိ</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> ပရင့်ထုတ် နှင့် ဒေါင်းလုဒ်</li>
             </ul>
           </div>
         </div>

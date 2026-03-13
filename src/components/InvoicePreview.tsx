@@ -18,10 +18,17 @@ function fmt(amount: number, currency: string) {
 
 function fmtDate(d: string) {
   if (!d) return '';
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
+  return new Date(d + 'T00:00:00').toLocaleDateString('my-MM', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'မူကြမ်း',
+  sent: 'ပို့ပြီး',
+  paid: 'ပေးပြီး',
+  overdue: 'ရက်လွန်',
+};
 
 const STATUS_STYLES: Record<string, string> = {
   draft: 'bg-slate-100 text-slate-700',
@@ -47,8 +54,8 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
   if (!invoice) {
     return (
       <div className="max-w-2xl mx-auto p-8 text-center">
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Invoice Not Found</h2>
-        <button onClick={onBack} className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500">Go Back</button>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">ပြေစာ ရှာမတွေ့ပါ</h2>
+        <button onClick={onBack} className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500">နောက်သို့</button>
       </div>
     );
   }
@@ -70,7 +77,6 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
     setDownloading(true);
 
     try {
-      // Simple direct capture — most reliable approach
       const canvas = await html2canvas(invoiceRef.current, {
         scale: 2,
         useCORS: true,
@@ -82,10 +88,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
         foreignObjectRendering: false,
       });
 
-      // PNG is the default and most reliable format for toDataURL
       const dataUrl = canvas.toDataURL('image/png');
-
-      // Trigger download
       const link = document.createElement('a');
       link.download = `${invoice.invoiceNumber || 'invoice'}.png`;
       link.href = dataUrl;
@@ -95,7 +98,6 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
     } catch (err) {
       console.error('PNG generation error (attempt 1):', err);
 
-      // Fallback: minimal options
       try {
         const canvas = await html2canvas(invoiceRef.current!, {
           scale: 1,
@@ -116,7 +118,6 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
       } catch (err2) {
         console.error('PNG generation error (attempt 2):', err2);
 
-        // Final fallback: use SVG serialization
         try {
           const el = invoiceRef.current!;
           const rect = el.getBoundingClientRect();
@@ -147,11 +148,11 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
             document.body.removeChild(link);
           };
           img.onerror = () => {
-            alert('Could not generate image. Please use Print → Save as PDF instead.');
+            alert('ပုံ ဖန်တီးမရပါ။ Print → Save as PDF ကို သုံးပါ။');
           };
           img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
         } catch {
-          alert('Could not generate image. Please use Print → Save as PDF instead.');
+          alert('ပုံ ဖန်တီးမရပါ။ Print → Save as PDF ကို သုံးပါ။');
         }
       }
     } finally {
@@ -161,7 +162,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6">
-      {/* Toolbar - hidden in print */}
+      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 print:hidden">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
@@ -169,14 +170,14 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-800">{invoice.invoiceNumber}</h1>
-            <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[invoice.status]}`}>
-              {invoice.status}
+            <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[invoice.status]}`}>
+              {STATUS_LABELS[invoice.status] || invoice.status}
             </span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all">
-            <Printer className="w-4 h-4" /> Print
+            <Printer className="w-4 h-4" /> ပရင့်ထုတ်
           </button>
           <button onClick={handleDownloadJSON} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all">
             <Download className="w-4 h-4" /> JSON
@@ -192,29 +193,29 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
           >
             {downloading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+                <Loader2 className="w-4 h-4 animate-spin" /> ဖန်တီးနေသည်...
               </>
             ) : (
               <>
-                <ImageDown className="w-4 h-4" /> Download PNG
+                <ImageDown className="w-4 h-4" /> PNG ဒေါင်းလုဒ်
               </>
             )}
           </button>
+          {/* Staff and Owner can both edit */}
+          <button
+            onClick={() => onEdit(invoice.id)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500 transition-all"
+          >
+            <Edit className="w-4 h-4" /> ပြင်ဆင်
+          </button>
+          {/* Only Owner can delete */}
           {isOwner && (
-            <>
-              <button
-                onClick={() => onEdit(invoice.id)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500 transition-all"
-              >
-                <Edit className="w-4 h-4" /> Edit
-              </button>
-              <button
-                onClick={() => { if (confirm('Delete this invoice permanently?')) onDelete(invoice.id); }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-500 transition-all"
-              >
-                <Trash2 className="w-4 h-4" /> Delete
-              </button>
-            </>
+            <button
+              onClick={() => { if (confirm('ဤပြေစာကို အပြီးအပိုင် ဖျက်မည်လား?')) onDelete(invoice.id); }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-500 transition-all"
+            >
+              <Trash2 className="w-4 h-4" /> ဖျက်
+            </button>
           )}
         </div>
       </div>
@@ -223,11 +224,11 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
       {!isOwner && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-sm text-amber-700 print:hidden">
           <Shield className="w-4 h-4 flex-shrink-0" />
-          <span>You have <strong>Staff</strong> access — you can view, print, and download but cannot edit or delete invoices.</span>
+          <span>သင်သည် <strong>ဝန်ထမ်း</strong> ဖြစ်သည် — ကြည့်ရှု၊ ပရင့်ထုတ်၊ ဒေါင်းလုဒ် နှင့် ပြင်ဆင်နိုင်သော်လည်း ဖျက်ပိုင်ခွင့် မရှိပါ။</span>
         </div>
       )}
 
-      {/* Invoice Document — this div is captured for PNG download */}
+      {/* Invoice Document */}
       <div
         ref={invoiceRef}
         className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden print:shadow-none print:border-none print:rounded-none"
@@ -237,7 +238,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
         <div style={{ background: 'linear-gradient(to right, #4f46e5, #7c3aed)', padding: '24px 32px' }}>
           <div className="flex flex-col sm:flex-row justify-between gap-4">
             <div>
-              <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#ffffff', letterSpacing: '-0.025em', margin: 0 }}>INVOICE</h2>
+              <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#ffffff', letterSpacing: '-0.025em', margin: 0 }}>ပြေစာ</h2>
               <p style={{ color: '#a5b4fc', marginTop: '4px', fontSize: '14px', fontFamily: 'monospace' }}>{invoice.invoiceNumber}</p>
             </div>
             <div className="text-left sm:text-right">
@@ -253,7 +254,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
                 backgroundColor: invoice.status === 'paid' ? 'rgba(52, 211, 153, 0.2)' : invoice.status === 'overdue' ? 'rgba(248, 113, 113, 0.2)' : 'rgba(255, 255, 255, 0.2)',
                 border: `1px solid ${invoice.status === 'paid' ? 'rgba(52, 211, 153, 0.3)' : invoice.status === 'overdue' ? 'rgba(248, 113, 113, 0.3)' : 'rgba(255, 255, 255, 0.3)'}`,
               }}>
-                {invoice.status}
+                {STATUS_LABELS[invoice.status] || invoice.status}
               </span>
             </div>
           </div>
@@ -263,27 +264,27 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
           {/* Dates + Amount */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginBottom: '32px' }}>
             <div style={{ minWidth: '120px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Invoice Date</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>ပြေစာ ရက်စွဲ</p>
               <p style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b', marginTop: '4px' }}>{fmtDate(invoice.date)}</p>
             </div>
             <div style={{ minWidth: '120px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Due Date</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>နောက်ဆုံးရက်</p>
               <p style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b', marginTop: '4px' }}>{fmtDate(invoice.dueDate)}</p>
             </div>
             <div style={{ minWidth: '80px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Currency</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>ငွေကြေး</p>
               <p style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b', marginTop: '4px' }}>{invoice.currency}</p>
             </div>
             <div style={{ minWidth: '120px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Amount Due</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>စုစုပေါင်း</p>
               <p style={{ fontSize: '20px', fontWeight: 700, color: '#4f46e5', marginTop: '4px' }}>{fmt(invoice.total, invoice.currency)}</p>
             </div>
             <div style={{ minWidth: '120px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Paid</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>ပေးပြီးငွေ</p>
               <p style={{ fontSize: '20px', fontWeight: 700, color: '#059669', marginTop: '4px' }}>{fmt(invoice.paidAmount || 0, invoice.currency)}</p>
             </div>
             <div style={{ minWidth: '120px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Balance Due</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>ကျန်ငွေ</p>
               <p style={{ fontSize: '20px', fontWeight: 700, color: (invoice.balanceDue ?? invoice.total) <= 0 ? '#059669' : '#dc2626', marginTop: '4px' }}>
                 {fmt(Math.max(0, invoice.balanceDue ?? invoice.total), invoice.currency)}
               </p>
@@ -293,7 +294,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
           {/* From / To */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
             <div style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '20px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px' }}>From</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px' }}>ပို့သူ</p>
               <p style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{invoice.senderName || '—'}</p>
               {invoice.senderEmail && <p style={{ fontSize: '13px', color: '#475569', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}><Mail style={{ width: 12, height: 12 }} />{invoice.senderEmail}</p>}
               {invoice.senderPhone && <p style={{ fontSize: '13px', color: '#475569', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}><Phone style={{ width: 12, height: 12 }} />{invoice.senderPhone}</p>}
@@ -306,7 +307,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
               )}
             </div>
             <div style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '20px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px' }}>Bill To</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px' }}>လက်ခံသူ</p>
               <p style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{invoice.clientName || '—'}</p>
               {invoice.clientCompany && <p style={{ fontSize: '13px', color: '#475569', marginTop: '2px' }}>{invoice.clientCompany}</p>}
               {invoice.clientEmail && <p style={{ fontSize: '13px', color: '#475569', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}><Mail style={{ width: 12, height: 12 }} />{invoice.clientEmail}</p>}
@@ -326,10 +327,10 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
               <thead>
                 <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
                   <th style={{ textAlign: 'left', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>#</th>
-                  <th style={{ textAlign: 'left', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Description</th>
-                  <th style={{ textAlign: 'right', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Qty</th>
-                  <th style={{ textAlign: 'right', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Rate</th>
-                  <th style={{ textAlign: 'right', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Amount</th>
+                  <th style={{ textAlign: 'left', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>အကြောင်းအရာ</th>
+                  <th style={{ textAlign: 'right', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>အရေအတွက်</th>
+                  <th style={{ textAlign: 'right', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>နှုန်း</th>
+                  <th style={{ textAlign: 'right', padding: '12px 4px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>ပမာဏ</th>
                 </tr>
               </thead>
               <tbody>
@@ -350,28 +351,28 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <div style={{ width: '280px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', padding: '6px 0' }}>
-                <span style={{ color: '#64748b' }}>Subtotal</span>
+                <span style={{ color: '#64748b' }}>ခွဲစုစုပေါင်း</span>
                 <span style={{ fontWeight: 500, color: '#334155' }}>{fmt(invoice.subtotal, invoice.currency)}</span>
               </div>
               {invoice.taxRate > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', padding: '6px 0' }}>
-                  <span style={{ color: '#64748b' }}>Tax ({invoice.taxRate}%)</span>
+                  <span style={{ color: '#64748b' }}>အခွန် ({invoice.taxRate}%)</span>
                   <span style={{ fontWeight: 500, color: '#334155' }}>+{fmt(invoice.taxAmount, invoice.currency)}</span>
                 </div>
               )}
               {invoice.discountRate > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', padding: '6px 0' }}>
-                  <span style={{ color: '#64748b' }}>Discount ({invoice.discountRate}%)</span>
+                  <span style={{ color: '#64748b' }}>လျှော့စျေး ({invoice.discountRate}%)</span>
                   <span style={{ fontWeight: 500, color: '#ef4444' }}>-{fmt(invoice.discountAmount, invoice.currency)}</span>
                 </div>
               )}
               <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '12px', marginTop: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Total</span>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>စုစုပေါင်း</span>
                 <span style={{ fontSize: '20px', fontWeight: 700, color: '#4f46e5' }}>{fmt(invoice.total, invoice.currency)}</span>
               </div>
               {(invoice.paidAmount || 0) > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingTop: '8px' }}>
-                  <span style={{ color: '#059669', fontWeight: 500 }}>Paid Amount</span>
+                  <span style={{ color: '#059669', fontWeight: 500 }}>ပေးပြီးငွေ</span>
                   <span style={{ fontWeight: 600, color: '#059669' }}>-{fmt(invoice.paidAmount || 0, invoice.currency)}</span>
                 </div>
               )}
@@ -387,7 +388,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
                   fontWeight: 700,
                   color: (invoice.balanceDue ?? invoice.total) <= 0 ? '#15803d' : '#b91c1c',
                 }}>
-                  {(invoice.balanceDue ?? invoice.total) <= 0 ? '✓ Fully Paid' : 'Balance Due'}
+                  {(invoice.balanceDue ?? invoice.total) <= 0 ? '✓ အပြည့်ပေးပြီး' : 'ကျန်ငွေ'}
                 </span>
                 <span style={{
                   fontSize: '20px',
@@ -405,13 +406,13 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', paddingTop: '24px', marginTop: '24px', borderTop: '1px solid #f1f5f9' }}>
               {invoice.notes && (
                 <div>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>Notes</p>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>မှတ်ချက်</p>
                   <p style={{ fontSize: '13px', color: '#475569', whiteSpace: 'pre-wrap', margin: 0 }}>{invoice.notes}</p>
                 </div>
               )}
               {invoice.terms && (
                 <div>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>Terms & Conditions</p>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>စည်းကမ်းချက်များ</p>
                   <p style={{ fontSize: '13px', color: '#475569', whiteSpace: 'pre-wrap', margin: 0 }}>{invoice.terms}</p>
                 </div>
               )}
@@ -420,20 +421,20 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
 
           {/* Footer */}
           <div style={{ textAlign: 'center', paddingTop: '24px', marginTop: '24px', borderTop: '1px solid #f1f5f9' }}>
-            <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Created by {invoice.createdByName} • {new Date(invoice.createdAt).toLocaleDateString()}</p>
+            <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>{invoice.createdByName} မှ ဖန်တီးသည် • {new Date(invoice.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
       </div>
 
-      {/* Info banner — hidden in print */}
+      {/* Info banner */}
       <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl print:hidden">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
             <ImageDown className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-700">Download as PNG Image</p>
-            <p className="text-xs text-slate-500">Click the <strong>&quot;Download PNG&quot;</strong> button above to save this invoice as a high-resolution PNG image. Perfect for sharing via messaging apps.</p>
+            <p className="text-sm font-semibold text-slate-700">PNG ပုံအဖြစ် ဒေါင်းလုဒ်ဆွဲရန်</p>
+            <p className="text-xs text-slate-500">အထက်ပါ <strong>&quot;PNG ဒေါင်းလုဒ်&quot;</strong> ခလုတ်ကို နှိပ်၍ ဤပြေစာကို PNG ပုံအဖြစ် သိမ်းဆည်းပါ။</p>
           </div>
         </div>
       </div>

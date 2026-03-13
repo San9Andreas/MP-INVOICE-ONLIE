@@ -15,11 +15,23 @@ function fmt(amount: number, currency: string) {
   return `${CURRENCY_SYMBOLS[currency] || 'Ks'}${amount.toFixed(2)}`;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'မူကြမ်း',
+  sent: 'ပို့ပြီး',
+  paid: 'ပေးပြီး',
+  overdue: 'ရက်လွန်',
+};
+
 const STATUS_STYLES: Record<string, string> = {
   draft: 'bg-slate-100 text-slate-700',
   sent: 'bg-blue-100 text-blue-700',
   paid: 'bg-emerald-100 text-emerald-700',
   overdue: 'bg-red-100 text-red-700',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: 'ပိုင်ရှင်',
+  staff: 'ဝန်ထမ်း',
 };
 
 interface Props {
@@ -42,7 +54,6 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
   const filtered = useMemo(() => {
     let list = [...invoices];
 
-    // Search
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter(inv =>
@@ -54,12 +65,10 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
       );
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       list = list.filter(inv => inv.status === statusFilter);
     }
 
-    // Sort
     list.sort((a, b) => {
       let cmp = 0;
       if (sortField === 'date') cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
@@ -81,12 +90,11 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
 
   const handleDelete = async (id: string) => {
     if (!isOwner) return;
-    if (confirm('Delete this invoice permanently?')) {
+    if (confirm('ဤပြေစာကို အပြီးအပိုင် ဖျက်မည်လား?')) {
       await deleteInvoice(id);
     }
   };
 
-  // Stats
   const totalCollected = invoices.reduce((s, i) => s + (i.paidAmount || 0), 0);
   const totalOutstanding = invoices.reduce((s, i) => s + Math.max(0, (i.balanceDue ?? i.total - (i.paidAmount || 0))), 0);
   const uniqueClients = new Set(invoices.map(i => i.clientEmail || i.clientName).filter(Boolean)).size;
@@ -94,8 +102,8 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Invoice History</h1>
-        <p className="text-sm text-slate-500 mt-1">Search and manage all invoices</p>
+        <h1 className="text-2xl font-bold text-slate-800">ပြေစာ မှတ်တမ်း</h1>
+        <p className="text-sm text-slate-500 mt-1">ပြေစာအားလုံး ရှာဖွေ နှင့် စီမံခန့်ခွဲရန်</p>
       </div>
 
       {/* Quick stats */}
@@ -103,29 +111,29 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs font-semibold text-slate-400 uppercase">Total</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">စုစုပေါင်း</span>
           </div>
           <p className="text-2xl font-bold text-slate-800">{invoices.length}</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs font-semibold text-slate-400 uppercase">Collected</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">ရရှိပြီး</span>
           </div>
           <p className="text-2xl font-bold text-emerald-600">Ks{totalCollected.toFixed(0)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">Outstanding: <span className="text-red-500 font-semibold">Ks{totalOutstanding.toFixed(0)}</span></p>
+          <p className="text-xs text-slate-400 mt-0.5">ကျန်ရှိ: <span className="text-red-500 font-semibold">Ks{totalOutstanding.toFixed(0)}</span></p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-4 h-4 text-purple-500" />
-            <span className="text-xs font-semibold text-slate-400 uppercase">Clients</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">ဖောက်သည်</span>
           </div>
           <p className="text-2xl font-bold text-slate-800">{uniqueClients}</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-semibold text-slate-400 uppercase">Overdue</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">ရက်လွန်</span>
           </div>
           <p className="text-2xl font-bold text-red-600">{invoices.filter(i => i.status === 'overdue').length}</p>
         </div>
@@ -142,7 +150,7 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                 value={query}
                 onChange={e => { setQuery(e.target.value); setPage(1); }}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Search by client name, company, email, invoice number..."
+                placeholder="ဖောက်သည်အမည်, ကုမ္ပဏီ, အီးမေးလ်, ပြေစာနံပါတ် ဖြင့် ရှာဖွေပါ..."
               />
             </div>
             <div className="flex items-center gap-2">
@@ -153,24 +161,23 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                   onChange={e => { setStatusFilter(e.target.value as InvoiceStatus | 'all'); setPage(1); }}
                   className="pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="all">All Status</option>
-                  <option value="draft">Draft</option>
-                  <option value="sent">Sent</option>
-                  <option value="paid">Paid</option>
-                  <option value="overdue">Overdue</option>
+                  <option value="all">အခြေအနေအားလုံး</option>
+                  <option value="draft">မူကြမ်း</option>
+                  <option value="sent">ပို့ပြီး</option>
+                  <option value="paid">ပေးပြီး</option>
+                  <option value="overdue">ရက်လွန်</option>
                 </select>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Table */}
         {filtered.length === 0 ? (
           <div className="p-12 text-center">
             <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No invoices found</p>
+            <p className="text-slate-500 font-medium">ပြေစာ ရှာမတွေ့ပါ</p>
             <p className="text-sm text-slate-400 mt-1">
-              {query ? 'Try adjusting your search terms' : 'Create your first invoice to get started'}
+              {query ? 'ရှာဖွေရေး စာသားကို ပြင်ကြည့်ပါ' : 'ပထမဆုံး ပြေစာ ဖန်တီးပါ'}
             </p>
           </div>
         ) : (
@@ -180,30 +187,30 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/50">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Invoice</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">ပြေစာ</th>
                     <th
                       className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase cursor-pointer hover:text-slate-600 select-none"
                       onClick={() => toggleSort('client')}
                     >
-                      <span className="flex items-center gap-1">Client <ArrowUpDown className="w-3 h-3" /></span>
+                      <span className="flex items-center gap-1">ဖောက်သည် <ArrowUpDown className="w-3 h-3" /></span>
                     </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Status</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">အခြေအနေ</th>
                     <th
                       className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase cursor-pointer hover:text-slate-600 select-none"
                       onClick={() => toggleSort('date')}
                     >
-                      <span className="flex items-center gap-1">Date <ArrowUpDown className="w-3 h-3" /></span>
+                      <span className="flex items-center gap-1">ရက်စွဲ <ArrowUpDown className="w-3 h-3" /></span>
                     </th>
                     <th
                       className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase cursor-pointer hover:text-slate-600 select-none"
                       onClick={() => toggleSort('total')}
                     >
-                      <span className="flex items-center gap-1 justify-end">Amount <ArrowUpDown className="w-3 h-3" /></span>
+                      <span className="flex items-center gap-1 justify-end">ပမာဏ <ArrowUpDown className="w-3 h-3" /></span>
                     </th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Paid</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Balance</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Created By</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Actions</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">ပေးပြီး</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">ကျန်ငွေ</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">ဖန်တီးသူ</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">လုပ်ဆောင်ချက်</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -219,8 +226,8 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[inv.status]}`}>
-                          {inv.status}
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[inv.status]}`}>
+                          {STATUS_LABELS[inv.status] || inv.status}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-slate-600 text-sm">{new Date(inv.date + 'T00:00:00').toLocaleDateString()}</td>
@@ -235,7 +242,7 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                           const bal = Math.max(0, inv.balanceDue ?? (inv.total - (inv.paidAmount || 0)));
                           return (
                             <span className={`text-sm font-bold ${bal <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                              {bal <= 0 ? '✓ Paid' : fmt(bal, inv.currency)}
+                              {bal <= 0 ? '✓ ပေးပြီး' : fmt(bal, inv.currency)}
                             </span>
                           );
                         })()}
@@ -246,24 +253,24 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
                             inv.createdByRole === 'owner' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'
                           }`}>
-                            {inv.createdByRole}
+                            {ROLE_LABELS[inv.createdByRole] || inv.createdByRole}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => onView(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View">
+                          <button onClick={() => onView(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="ကြည့်ရှု">
                             <Eye className="w-4 h-4" />
                           </button>
+                          {/* Staff and Owner can edit */}
+                          <button onClick={() => onEdit(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all" title="ပြင်ဆင်">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          {/* Only Owner can delete */}
                           {isOwner && (
-                            <>
-                              <button onClick={() => onEdit(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all" title="Edit">
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleDelete(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Delete">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
+                            <button onClick={() => handleDelete(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all" title="ဖျက်">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -283,8 +290,8 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                       <p className="font-medium text-slate-800 mt-0.5">{inv.clientName || '—'}</p>
                       {inv.clientCompany && <p className="text-xs text-slate-400">{inv.clientCompany}</p>}
                     </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[inv.status]}`}>
-                      {inv.status}
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[inv.status]}`}>
+                      {STATUS_LABELS[inv.status] || inv.status}
                     </span>
                   </div>
                   <div className="flex items-center justify-between mt-3">
@@ -292,14 +299,14 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                       <span>{new Date(inv.date + 'T00:00:00').toLocaleDateString()}</span>
                       <span className="font-semibold text-slate-800 text-sm">{fmt(inv.total, inv.currency)}</span>
                       {(inv.paidAmount || 0) > 0 && (
-                        <span className="text-emerald-600 font-medium">Paid: {fmt(inv.paidAmount || 0, inv.currency)}</span>
+                        <span className="text-emerald-600 font-medium">ပေးပြီး: {fmt(inv.paidAmount || 0, inv.currency)}</span>
                       )}
                       {(() => {
                         const bal = Math.max(0, inv.balanceDue ?? (inv.total - (inv.paidAmount || 0)));
                         return bal > 0 ? (
-                          <span className="text-red-600 font-bold">Due: {fmt(bal, inv.currency)}</span>
+                          <span className="text-red-600 font-bold">ကျန်: {fmt(bal, inv.currency)}</span>
                         ) : (inv.paidAmount || 0) > 0 ? (
-                          <span className="text-emerald-600 font-bold">✓ Paid</span>
+                          <span className="text-emerald-600 font-bold">✓ ပေးပြီး</span>
                         ) : null;
                       })()}
                     </div>
@@ -307,15 +314,15 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
                       <button onClick={() => onView(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
                         <Eye className="w-4 h-4" />
                       </button>
+                      {/* Staff and Owner can edit */}
+                      <button onClick={() => onEdit(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      {/* Only Owner can delete */}
                       {isOwner && (
-                        <>
-                          <button onClick={() => onEdit(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDelete(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
+                        <button onClick={() => handleDelete(inv.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
                   </div>
@@ -327,7 +334,7 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
             {totalPages > 1 && (
               <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
                 <p className="text-xs text-slate-500">
-                  Showing {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
+                  {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} / {filtered.length} ပြေစာ
                 </p>
                 <div className="flex items-center gap-1">
                   <button
@@ -368,7 +375,7 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
       {!isOwner && (
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-sm text-amber-700">
           <Shield className="w-4 h-4 flex-shrink-0" />
-          <span>As <strong>Staff</strong>, you can view, print, and download invoices. Editing and deleting requires <strong>Owner</strong> access.</span>
+          <span><strong>ဝန်ထမ်း</strong> အနေဖြင့် ပြေစာများကို ကြည့်ရှု၊ ပရင့်ထုတ်၊ ဒေါင်းလုဒ် နှင့် ပြင်ဆင်နိုင်သည်။ ဖျက်ပိုင်ခွင့်အတွက် <strong>ပိုင်ရှင်</strong> အသုံးပြုခွင့် လိုအပ်သည်။</span>
         </div>
       )}
     </div>

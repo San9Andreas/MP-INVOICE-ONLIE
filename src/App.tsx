@@ -46,7 +46,6 @@ function AppContent() {
     setSelectedInvoiceId(null);
   }, []);
 
-  // ── Auth loading screen (checking onAuthStateChanged) ─────
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center">
@@ -56,20 +55,18 @@ function AppContent() {
           </div>
           <div className="flex items-center justify-center gap-2 text-white">
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-lg font-medium">Checking session...</span>
+            <span className="text-lg font-medium">session စစ်ဆေးနေသည်...</span>
           </div>
-          <p className="text-sm text-slate-400 mt-2">Verifying authentication</p>
+          <p className="text-sm text-slate-400 mt-2">အတည်ပြုခြင်း စစ်ဆေးနေသည်</p>
         </div>
       </div>
     );
   }
 
-  // ── Not authenticated — show login ────────────────────────
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  // ── Invoice data loading ──────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -79,9 +76,9 @@ function AppContent() {
           </div>
           <div className="flex items-center justify-center gap-2 text-slate-600">
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-lg font-medium">Loading invoices...</span>
+            <span className="text-lg font-medium">ပြေစာများ ဖတ်နေသည်...</span>
           </div>
-          <p className="text-sm text-slate-400 mt-2">Connecting to cloud storage</p>
+          <p className="text-sm text-slate-400 mt-2">Cloud storage နှင့် ချိတ်ဆက်နေသည်</p>
         </div>
       </div>
     );
