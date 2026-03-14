@@ -60,7 +60,431 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
     );
   }
 
-  const handlePrint = () => window.print();
+  // ========================================
+  // SINGLE-PAGE VOUCHER PRINT FUNCTION
+  // ========================================
+  const handlePrint = () => {
+    if (!invoiceRef.current) return;
+
+    // Build status colors
+    const statusColor = invoice.status === 'paid' ? '#059669'
+      : invoice.status === 'overdue' ? '#dc2626'
+      : invoice.status === 'sent' ? '#2563eb' : '#475569';
+    const statusBg = invoice.status === 'paid' ? '#ecfdf5'
+      : invoice.status === 'overdue' ? '#fef2f2'
+      : invoice.status === 'sent' ? '#eff6ff' : '#f8fafc';
+
+    // Generate clean single-page voucher HTML
+    const printHTML = `<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${invoice.invoiceNumber} - ပြေစာ</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: auto;
+      background: white;
+      color: #1e293b;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    .voucher {
+      width: 100%;
+      max-width: 100%;
+      padding: 0;
+    }
+    /* Header */
+    .v-header {
+      background: linear-gradient(to right, #4f46e5, #7c3aed) !important;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .v-header h1 {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ffffff;
+      letter-spacing: -0.025em;
+    }
+    .v-header .inv-num {
+      color: #a5b4fc;
+      font-size: 12px;
+      font-family: monospace;
+      margin-top: 2px;
+    }
+    .v-header .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: ${statusColor};
+      background: ${statusBg};
+    }
+    /* Info Grid */
+    .info-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 16px 24px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .info-item label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .info-item .value {
+      font-size: 12px;
+      font-weight: 500;
+      color: #1e293b;
+    }
+    .info-item .value.big {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .info-item .value.purple { color: #4f46e5; }
+    .info-item .value.green { color: #059669; }
+    .info-item .value.red { color: #dc2626; }
+    /* Parties */
+    .parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px 24px;
+    }
+    .party-box {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .party-box .label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .party-box .name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .party-box .detail {
+      font-size: 11px;
+      color: #475569;
+      margin-top: 3px;
+    }
+    /* Items Table */
+    .items-section {
+      padding: 0 24px 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    thead tr {
+      border-bottom: 2px solid #e2e8f0;
+    }
+    th {
+      text-align: left;
+      padding: 8px 4px;
+      font-size: 9px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+    th.right { text-align: right; }
+    td {
+      padding: 8px 4px;
+      color: #1e293b;
+    }
+    td.right { text-align: right; }
+    td.muted { color: #475569; }
+    td.bold { font-weight: 600; }
+    tr.even { background: #f8fafc !important; }
+    /* Totals */
+    .totals-section {
+      padding: 0 24px 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .totals-box {
+      width: 240px;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 12px;
+    }
+    .total-row .label { color: #64748b; }
+    .total-row .val { font-weight: 500; color: #334155; }
+    .total-row.main {
+      border-top: 2px solid #e2e8f0;
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+    .total-row.main .label { font-size: 14px; font-weight: 700; color: #1e293b; }
+    .total-row.main .val { font-size: 16px; font-weight: 700; color: #4f46e5; }
+    .total-row.paid .label { color: #059669; font-weight: 500; }
+    .total-row.paid .val { font-weight: 600; color: #059669; }
+    .total-row.balance {
+      border-top: 2px solid ${(invoice.balanceDue ?? invoice.total) <= 0 ? '#86efac' : '#fca5a5'};
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+    .total-row.balance .label {
+      font-size: 13px;
+      font-weight: 700;
+      color: ${(invoice.balanceDue ?? invoice.total) <= 0 ? '#15803d' : '#b91c1c'};
+    }
+    .total-row.balance .val {
+      font-size: 16px;
+      font-weight: 700;
+      color: ${(invoice.balanceDue ?? invoice.total) <= 0 ? '#059669' : '#dc2626'};
+    }
+    /* Notes */
+    .notes-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 12px 24px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .notes-section .sec-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .notes-section .sec-text {
+      font-size: 11px;
+      color: #475569;
+      white-space: pre-wrap;
+    }
+    /* Footer */
+    .v-footer {
+      text-align: center;
+      padding: 10px 24px;
+      border-top: 1px solid #f1f5f9;
+      font-size: 10px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="voucher">
+    <!-- Header -->
+    <div class="v-header">
+      <div>
+        <h1>ပြေစာ</h1>
+        <div class="inv-num">${invoice.invoiceNumber}</div>
+      </div>
+      <div>
+        <span class="status-badge">${STATUS_LABELS[invoice.status] || invoice.status}</span>
+      </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div class="info-grid">
+      <div class="info-item">
+        <label>ပြေစာ ရက်စွဲ</label>
+        <div class="value">${fmtDate(invoice.date)}</div>
+      </div>
+      <div class="info-item">
+        <label>နောက်ဆုံးရက်</label>
+        <div class="value">${fmtDate(invoice.dueDate)}</div>
+      </div>
+      <div class="info-item">
+        <label>ငွေကြေး</label>
+        <div class="value">${invoice.currency}</div>
+      </div>
+      <div class="info-item">
+        <label>စုစုပေါင်း</label>
+        <div class="value big purple">${fmt(invoice.total, invoice.currency)}</div>
+      </div>
+      <div class="info-item">
+        <label>ပေးပြီးငွေ</label>
+        <div class="value big green">${fmt(invoice.paidAmount || 0, invoice.currency)}</div>
+      </div>
+      <div class="info-item">
+        <label>ကျန်ငွေ</label>
+        <div class="value big ${(invoice.balanceDue ?? invoice.total) <= 0 ? 'green' : 'red'}">${fmt(Math.max(0, invoice.balanceDue ?? invoice.total), invoice.currency)}</div>
+      </div>
+    </div>
+
+    <!-- Parties -->
+    <div class="parties">
+      <div class="party-box">
+        <div class="label">ပို့သူ</div>
+        <div class="name">${invoice.senderName || '—'}</div>
+        ${invoice.senderEmail ? `<div class="detail">✉ ${invoice.senderEmail}</div>` : ''}
+        ${invoice.senderPhone ? `<div class="detail">☎ ${invoice.senderPhone}</div>` : ''}
+        ${invoice.senderWebsite ? `<div class="detail">🌐 ${invoice.senderWebsite}</div>` : ''}
+        ${(invoice.senderAddress || invoice.senderCity) ? `<div class="detail">📍 ${[invoice.senderAddress, invoice.senderCity].filter(Boolean).join(', ')}</div>` : ''}
+      </div>
+      <div class="party-box">
+        <div class="label">လက်ခံသူ</div>
+        <div class="name">${invoice.clientName || '—'}</div>
+        ${invoice.clientCompany ? `<div class="detail">${invoice.clientCompany}</div>` : ''}
+        ${invoice.clientEmail ? `<div class="detail">✉ ${invoice.clientEmail}</div>` : ''}
+        ${invoice.clientPhone ? `<div class="detail">☎ ${invoice.clientPhone}</div>` : ''}
+        ${(invoice.clientAddress || invoice.clientCity) ? `<div class="detail">📍 ${[invoice.clientAddress, invoice.clientCity].filter(Boolean).join(', ')}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="items-section">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>အကြောင်းအရာ</th>
+            <th class="right">အရေအတွက်</th>
+            <th class="right">နှုန်း</th>
+            <th class="right">ပမာဏ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${invoice.items.map((item, idx) => `
+            <tr class="${idx % 2 === 0 ? 'even' : ''}">
+              <td class="muted">${idx + 1}</td>
+              <td class="bold">${item.description || '—'}</td>
+              <td class="right muted">${item.quantity}</td>
+              <td class="right muted">${fmt(item.rate, invoice.currency)}</td>
+              <td class="right bold">${fmt(item.quantity * item.rate, invoice.currency)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Totals -->
+    <div class="totals-section">
+      <div class="totals-box">
+        <div class="total-row">
+          <span class="label">ခွဲစုစုပေါင်း</span>
+          <span class="val">${fmt(invoice.subtotal, invoice.currency)}</span>
+        </div>
+        ${invoice.taxRate > 0 ? `
+          <div class="total-row">
+            <span class="label">အခွန် (${invoice.taxRate}%)</span>
+            <span class="val">+${fmt(invoice.taxAmount, invoice.currency)}</span>
+          </div>
+        ` : ''}
+        ${invoice.discountRate > 0 ? `
+          <div class="total-row">
+            <span class="label">လျှော့စျေး (${invoice.discountRate}%)</span>
+            <span class="val" style="color:#ef4444">-${fmt(invoice.discountAmount, invoice.currency)}</span>
+          </div>
+        ` : ''}
+        <div class="total-row main">
+          <span class="label">စုစုပေါင်း</span>
+          <span class="val">${fmt(invoice.total, invoice.currency)}</span>
+        </div>
+        ${(invoice.paidAmount || 0) > 0 ? `
+          <div class="total-row paid">
+            <span class="label">ပေးပြီးငွေ</span>
+            <span class="val">-${fmt(invoice.paidAmount || 0, invoice.currency)}</span>
+          </div>
+        ` : ''}
+        <div class="total-row balance">
+          <span class="label">${(invoice.balanceDue ?? invoice.total) <= 0 ? '✓ အပြည့်ပေးပြီး' : 'ကျန်ငွေ'}</span>
+          <span class="val">${fmt(Math.max(0, invoice.balanceDue ?? invoice.total), invoice.currency)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes & Terms -->
+    ${(invoice.notes || invoice.terms) ? `
+      <div class="notes-section">
+        ${invoice.notes ? `
+          <div>
+            <div class="sec-label">မှတ်ချက်</div>
+            <div class="sec-text">${invoice.notes}</div>
+          </div>
+        ` : '<div></div>'}
+        ${invoice.terms ? `
+          <div>
+            <div class="sec-label">စည်းကမ်းချက်များ</div>
+            <div class="sec-text">${invoice.terms}</div>
+          </div>
+        ` : ''}
+      </div>
+    ` : ''}
+
+    <!-- Footer -->
+    <div class="v-footer">
+      ${invoice.createdByName} မှ ဖန်တီးသည် • ${new Date(invoice.createdAt).toLocaleDateString()}
+    </div>
+  </div>
+
+  <script>
+    // Auto-print and close
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 300);
+    };
+    window.onafterprint = function() {
+      window.close();
+    };
+  </script>
+</body>
+</html>`;
+
+    // Open new window with clean voucher
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (printWindow) {
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+    } else {
+      // Fallback if popup blocked: use iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.top = '-99999px';
+      iframe.style.left = '-99999px';
+      iframe.style.width = '210mm';
+      iframe.style.height = '297mm';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(printHTML);
+        iframeDoc.close();
+        setTimeout(() => {
+          iframe.contentWindow?.print();
+          setTimeout(() => document.body.removeChild(iframe), 1000);
+        }, 500);
+      }
+    }
+  };
 
   const handleDownloadJSON = () => {
     const blob = new Blob([JSON.stringify(invoice, null, 2)], { type: 'application/json' });
@@ -163,7 +587,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 print:hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 print:hidden" data-print-hide>
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
             <ArrowLeft className="w-5 h-5" />
@@ -222,7 +646,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
 
       {/* RBAC note for staff */}
       {!isOwner && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-sm text-amber-700 print:hidden">
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-sm text-amber-700 print:hidden" data-print-hide>
           <Shield className="w-4 h-4 flex-shrink-0" />
           <span>သင်သည် <strong>ဝန်ထမ်း</strong> ဖြစ်သည် — ကြည့်ရှု၊ ပရင့်ထုတ်၊ ဒေါင်းလုဒ် နှင့် ပြင်ဆင်နိုင်သော်လည်း ဖျက်ပိုင်ခွင့် မရှိပါ။</span>
         </div>
@@ -231,6 +655,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
       {/* Invoice Document */}
       <div
         ref={invoiceRef}
+        id="invoice-print-doc"
         className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden print:shadow-none print:border-none print:rounded-none"
         style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
       >
@@ -427,7 +852,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
       </div>
 
       {/* Info banner */}
-      <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl print:hidden">
+      <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl print:hidden" data-print-hide>
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
             <ImageDown className="w-5 h-5 text-white" />
