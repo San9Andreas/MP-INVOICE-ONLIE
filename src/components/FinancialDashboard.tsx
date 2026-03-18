@@ -16,15 +16,13 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   CAD: 'C$', AUD: 'A$', INR: '₹', BRL: 'R$',
 };
 
-function fmtCurrency(amount: number, currency = 'MMK'): string {
-  const sym = CURRENCY_SYMBOLS[currency] || 'Ks';
-  return `${sym}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+function fmtFull(amount: number): string {
+  return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-function fmtCompact(amount: number): string {
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(1)}K`;
-  return amount.toFixed(0);
+function fmtCurrency(amount: number, currency = 'MMK'): string {
+  const sym = CURRENCY_SYMBOLS[currency] || 'Ks';
+  return `${sym}${fmtFull(amount)}`;
 }
 
 type DateFilter = 'this_month' | 'last_3_months' | 'last_6_months' | 'this_year' | 'all_time' | 'custom';
@@ -189,11 +187,11 @@ export default function FinancialDashboard({ onBack }: Props) {
 
     const rows = data.map((inv) => [
       inv.invoiceNumber, inv.date, inv.dueDate, inv.status, inv.clientName,
-      inv.clientCompany, inv.clientEmail, inv.currency, inv.subtotal.toFixed(2),
-      inv.taxRate.toFixed(2), inv.taxAmount.toFixed(2), inv.discountRate.toFixed(2),
-      inv.discountAmount.toFixed(2), inv.total.toFixed(2),
-      (inv.paidAmount || 0).toFixed(2),
-      (inv.balanceDue ?? (inv.total - (inv.paidAmount || 0))).toFixed(2),
+      inv.clientCompany, inv.clientEmail, inv.currency, fmtFull(inv.subtotal),
+      inv.taxRate.toString(), fmtFull(inv.taxAmount), inv.discountRate.toString(),
+      fmtFull(inv.discountAmount), fmtFull(inv.total),
+      fmtFull(inv.paidAmount || 0),
+      fmtFull(inv.balanceDue ?? (inv.total - (inv.paidAmount || 0))),
       inv.createdByName, inv.createdAt,
     ]);
 
@@ -211,16 +209,16 @@ export default function FinancialDashboard({ onBack }: Props) {
     const headers = ['အချက်', 'တန်ဖိုး'];
     const rows = [
       ['ကာလ', dateFilter === 'custom' ? `${customStart} မှ ${customEnd}` : filterLabels[dateFilter]],
-      ['စုစုပေါင်း ဝင်ငွေ', metrics.totalRevenue.toFixed(2)],
-      ['ရရှိပြီးငွေ စုစုပေါင်း', metrics.totalDeposits.toFixed(2)],
-      ['ကျန်ငွေ စုစုပေါင်း', metrics.totalOutstanding.toFixed(2)],
+      ['စုစုပေါင်း ဝင်ငွေ', fmtFull(metrics.totalRevenue)],
+      ['ရရှိပြီးငွေ စုစုပေါင်း', fmtFull(metrics.totalDeposits)],
+      ['ကျန်ငွေ စုစုပေါင်း', fmtFull(metrics.totalOutstanding)],
       ['အော်ဒါ အရေအတွက်', metrics.orderCount.toString()],
-      ['ပျမ်းမျှ အော်ဒါ တန်ဖိုး', metrics.avgOrderValue.toFixed(2)],
+      ['ပျမ်းမျှ အော်ဒါ တန်ဖိုး', fmtFull(metrics.avgOrderValue)],
       ['ရရှိမှု နှုန်း', `${metrics.collectionRate.toFixed(1)}%`],
       ['', ''],
       ['--- လစဉ် ခွဲခြမ်းချက် ---', ''],
       ['လ', 'ဝင်ငွေ,ရရှိပြီး,ကျန်ရှိ,အော်ဒါ'],
-      ...monthlyData.map((m) => [m.month, `${m.revenue.toFixed(2)},${m.deposits.toFixed(2)},${m.outstanding.toFixed(2)},${m.orders}`]),
+      ...monthlyData.map((m) => [m.month, `${fmtFull(m.revenue)},${fmtFull(m.deposits)},${fmtFull(m.outstanding)},${m.orders}`]),
     ];
 
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
@@ -520,7 +518,7 @@ export default function FinancialDashboard({ onBack }: Props) {
                 <BarChart data={monthlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtCompact(v)} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtFull(v)} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '12px' }} />
                   <Bar dataKey="revenue" name="ဝင်ငွေ" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={40} />
@@ -541,7 +539,7 @@ export default function FinancialDashboard({ onBack }: Props) {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtCompact(v)} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtFull(v)} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '12px' }} />
                   <Area type="monotone" dataKey="revenue" name="ဝင်ငွေ" stroke="#6366f1" fill="url(#colorRevenue)" strokeWidth={2} />
@@ -551,7 +549,7 @@ export default function FinancialDashboard({ onBack }: Props) {
                 <LineChart data={monthlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtCompact(v)} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtFull(v)} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '12px' }} />
                   <Line type="monotone" dataKey="revenue" name="ဝင်ငွေ" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 6 }} />
@@ -588,7 +586,7 @@ export default function FinancialDashboard({ onBack }: Props) {
                 <LineChart data={yearlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtCompact(v)} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => fmtFull(v)} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '12px' }} />
                   <Line type="monotone" dataKey="revenue" name="ဝင်ငွေ" stroke="#6366f1" strokeWidth={3} dot={{ r: 5, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 7, fill: '#6366f1' }} />
@@ -732,11 +730,11 @@ export default function FinancialDashboard({ onBack }: Props) {
             <p className="text-xs text-slate-400">မှတ်တမ်း</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-emerald-400">{fmtCompact(metrics.totalDeposits)}</p>
+            <p className="text-2xl font-bold text-emerald-400">{fmtCurrency(metrics.totalDeposits)}</p>
             <p className="text-xs text-slate-400">ရရှိပြီး</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-amber-400">{fmtCompact(metrics.totalOutstanding)}</p>
+            <p className="text-2xl font-bold text-amber-400">{fmtCurrency(metrics.totalOutstanding)}</p>
             <p className="text-xs text-slate-400">ကျန်ရှိ</p>
           </div>
           <div className="text-center">

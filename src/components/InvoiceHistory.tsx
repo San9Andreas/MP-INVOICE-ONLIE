@@ -12,7 +12,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 function fmt(amount: number, currency: string) {
-  return `${CURRENCY_SYMBOLS[currency] || 'Ks'}${amount.toFixed(2)}`;
+  return `${CURRENCY_SYMBOLS[currency] || 'Ks'}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -120,8 +120,8 @@ export default function InvoiceHistory({ onView, onEdit }: Props) {
             <DollarSign className="w-4 h-4 text-emerald-500" />
             <span className="text-xs font-semibold text-slate-400 uppercase">ရရှိပြီး</span>
           </div>
-          <p className="text-2xl font-bold text-emerald-600">Ks{totalCollected.toFixed(0)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">ကျန်ရှိ: <span className="text-red-500 font-semibold">Ks{totalOutstanding.toFixed(0)}</span></p>
+          <p className="text-2xl font-bold text-emerald-600">Ks{totalCollected.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+          <p className="text-xs text-slate-400 mt-0.5">ကျန်ရှိ: <span className="text-red-500 font-semibold">Ks{totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span></p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">

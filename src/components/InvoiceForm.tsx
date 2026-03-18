@@ -27,7 +27,7 @@ function getCurrencySymbol(code: string) {
 
 function formatCurrency(amount: number, currency: string) {
   const sym = getCurrencySymbol(currency);
-  return `${sym}${amount.toFixed(2)}`;
+  return `${sym}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 function generateInvoiceNumber() {

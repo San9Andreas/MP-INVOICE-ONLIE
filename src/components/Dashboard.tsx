@@ -12,7 +12,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 function fmt(amount: number, currency: string) {
-  return `${CURRENCY_SYMBOLS[currency] || 'Ks'}${amount.toFixed(2)}`;
+  return `${CURRENCY_SYMBOLS[currency] || 'Ks'}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -195,7 +195,7 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             <span className="text-xs font-semibold text-slate-400 uppercase">စုစုပေါင်း</span>
           </div>
           <p className="text-3xl font-bold text-slate-800">{invoices.length}</p>
-          <p className="text-xs text-slate-500 mt-1">ငွေတောင်းခံ: Ks{totalBilled.toFixed(0)}</p>
+          <p className="text-xs text-slate-500 mt-1">ငွေတောင်းခံ: Ks{totalBilled.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -205,7 +205,7 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             </div>
             <span className="text-xs font-semibold text-slate-400 uppercase">ရရှိပြီး</span>
           </div>
-          <p className="text-3xl font-bold text-emerald-600">Ks{totalRevenue.toFixed(0)}</p>
+          <p className="text-3xl font-bold text-emerald-600">Ks{totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
           <p className="text-xs text-slate-500 mt-1">ပေးပြီးငွေ စုစုပေါင်း</p>
         </div>
 
@@ -216,7 +216,7 @@ export default function Dashboard({ onNavigate, onView }: Props) {
             </div>
             <span className="text-xs font-semibold text-slate-400 uppercase">ကျန်ရှိ</span>
           </div>
-          <p className="text-3xl font-bold text-amber-600">Ks{totalBalance.toFixed(0)}</p>
+          <p className="text-3xl font-bold text-amber-600">Ks{totalBalance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
           <p className="text-xs text-slate-500 mt-1">ကျန်ငွေ စုစုပေါင်း</p>
         </div>
 

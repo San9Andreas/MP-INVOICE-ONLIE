@@ -13,7 +13,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 function fmt(amount: number, currency: string) {
   const s = CURRENCY_SYMBOLS[currency] || 'Ks';
-  return `${s}${amount.toFixed(2)}`;
+  return `${s}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 function fmtDate(d: string) {
