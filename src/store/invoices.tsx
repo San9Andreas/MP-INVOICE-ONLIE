@@ -21,6 +21,7 @@ interface InvoiceContextType {
   deleteInvoice: (id: string) => Promise<void>;
   getInvoice: (id: string) => Invoice | undefined;
   searchInvoices: (query: string) => Invoice[];
+  getNextInvoiceNumber: () => string;
   lastUpdate: number;
   storageMode: StorageMode;
   firestoreConnected: boolean;
@@ -241,6 +242,21 @@ export function InvoiceProvider({ children }: { children: React.ReactNode }) {
     [invoices]
   );
 
+  // ── Sequential Invoice Number Generator ───────────────────
+  const getNextInvoiceNumber = useCallback(() => {
+    let maxNum = 0;
+    invoices.forEach((inv) => {
+      // Match patterns like INV-0001, INV-0042, INV-123
+      const match = inv.invoiceNumber.match(/^INV-(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    const nextNum = maxNum + 1;
+    return `INV-${String(nextNum).padStart(4, '0')}`;
+  }, [invoices]);
+
   return (
     <InvoiceContext.Provider
       value={{
@@ -250,6 +266,7 @@ export function InvoiceProvider({ children }: { children: React.ReactNode }) {
         deleteInvoice,
         getInvoice,
         searchInvoices,
+        getNextInvoiceNumber,
         lastUpdate,
         storageMode,
         firestoreConnected,

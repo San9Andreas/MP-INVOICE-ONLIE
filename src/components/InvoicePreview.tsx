@@ -585,58 +585,55 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 print:hidden" data-print-hide>
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
+    <div className="max-w-4xl mx-auto p-3 sm:p-6 pb-28 sm:pb-8">
+      {/* Toolbar — mobile optimized */}
+      <div className="mb-4 sm:mb-6 print:hidden" data-print-hide>
+        {/* Header row */}
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={onBack} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all flex-shrink-0 active:scale-95">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">{invoice.invoiceNumber}</h1>
-            <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[invoice.status]}`}>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800 truncate">{invoice.invoiceNumber}</h1>
+            <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[invoice.status]}`}>
               {STATUS_LABELS[invoice.status] || invoice.status}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all">
-            <Printer className="w-4 h-4" /> ပရင့်ထုတ်
+
+        {/* Action buttons — grid on mobile for equal sizing */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <button onClick={handlePrint} className="flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all active:scale-95">
+            <Printer className="w-4 h-4" /> ပရင့်
           </button>
-          <button onClick={handleDownloadJSON} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all">
+          <button onClick={handleDownloadJSON} className="flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-all active:scale-95">
             <Download className="w-4 h-4" /> JSON
           </button>
           <button
             onClick={handleDownloadPNG}
             disabled={downloading}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-xl text-sm font-medium transition-all active:scale-95 ${
               downloading
                 ? 'bg-amber-100 text-amber-700 cursor-wait'
-                : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 shadow-sm hover:shadow-md'
+                : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 shadow-sm'
             }`}
           >
             {downloading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> ဖန်တီးနေသည်...
-              </>
+              <><Loader2 className="w-4 h-4 animate-spin" /> ဖန်တီးနေ...</>
             ) : (
-              <>
-                <ImageDown className="w-4 h-4" /> PNG ဒေါင်းလုဒ်
-              </>
+              <><ImageDown className="w-4 h-4" /> PNG</>
             )}
           </button>
-          {/* Staff and Owner can both edit */}
           <button
             onClick={() => onEdit(invoice.id)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500 transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500 transition-all active:scale-95"
           >
             <Edit className="w-4 h-4" /> ပြင်ဆင်
           </button>
-          {/* Only Owner can delete */}
           {isOwner && (
             <button
               onClick={() => { if (confirm('ဤပြေစာကို အပြီးအပိုင် ဖျက်မည်လား?')) onDelete(invoice.id); }}
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-500 transition-all"
+              className="col-span-2 flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-500 transition-all active:scale-95"
             >
               <Trash2 className="w-4 h-4" /> ဖျက်
             </button>
@@ -646,9 +643,9 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
 
       {/* RBAC note for staff */}
       {!isOwner && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-sm text-amber-700 print:hidden" data-print-hide>
+        <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs sm:text-sm text-amber-700 print:hidden" data-print-hide>
           <Shield className="w-4 h-4 flex-shrink-0" />
-          <span>သင်သည် <strong>ဝန်ထမ်း</strong> ဖြစ်သည် — ကြည့်ရှု၊ ပရင့်ထုတ်၊ ဒေါင်းလုဒ် နှင့် ပြင်ဆင်နိုင်သော်လည်း ဖျက်ပိုင်ခွင့် မရှိပါ။</span>
+          <span>ဝန်ထမ်း — ကြည့်ရှု၊ ပရင့်၊ ဒေါင်းလုဒ်၊ ပြင်ဆင် နိုင်သည်။ ဖျက်ပိုင်ခွင့် မရှိ။</span>
         </div>
       )}
 
@@ -660,13 +657,13 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
         style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
       >
         {/* Header */}
-        <div style={{ background: 'linear-gradient(to right, #4f46e5, #7c3aed)', padding: '24px 32px' }}>
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div style={{ background: 'linear-gradient(to right, #4f46e5, #7c3aed)', padding: '16px 20px' }}>
+          <div className="flex justify-between items-start gap-3">
             <div>
-              <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#ffffff', letterSpacing: '-0.025em', margin: 0 }}>ပြေစာ</h2>
-              <p style={{ color: '#a5b4fc', marginTop: '4px', fontSize: '14px', fontFamily: 'monospace' }}>{invoice.invoiceNumber}</p>
+              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#ffffff', letterSpacing: '-0.025em', margin: 0 }}>ပြေစာ</h2>
+              <p style={{ color: '#a5b4fc', marginTop: '4px', fontSize: '12px', fontFamily: 'monospace' }}>{invoice.invoiceNumber}</p>
             </div>
-            <div className="text-left sm:text-right">
+            <div>
               <span style={{
                 display: 'inline-block',
                 padding: '4px 12px',
@@ -685,9 +682,9 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
           </div>
         </div>
 
-        <div style={{ padding: '32px' }}>
+        <div style={{ padding: '16px 20px' }}>
           {/* Dates + Amount */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 20px', marginBottom: '20px' }}>
             <div style={{ minWidth: '120px' }}>
               <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>ပြေစာ ရက်စွဲ</p>
               <p style={{ fontSize: '14px', fontWeight: 500, color: '#1e293b', marginTop: '4px' }}>{fmtDate(invoice.date)}</p>
@@ -717,7 +714,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
           </div>
 
           {/* From / To */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5 mb-5 sm:mb-8">
             <div style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '20px' }}>
               <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px' }}>ပို့သူ</p>
               <p style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{invoice.senderName || '—'}</p>
@@ -828,7 +825,7 @@ export default function InvoicePreview({ invoiceId, onBack, onEdit, onDelete }: 
 
           {/* Notes & Terms */}
           {(invoice.notes || invoice.terms) && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', paddingTop: '24px', marginTop: '24px', borderTop: '1px solid #f1f5f9' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 sm:pt-6 mt-4 sm:mt-6" style={{ borderTop: '1px solid #f1f5f9' }}>
               {invoice.notes && (
                 <div>
                   <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>မှတ်ချက်</p>

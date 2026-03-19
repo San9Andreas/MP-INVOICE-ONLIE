@@ -30,17 +30,12 @@ function formatCurrency(amount: number, currency: string) {
   return `${sym}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
-function generateInvoiceNumber() {
-  const d = new Date();
-  return `INV-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-}
-
-function getDefaultInvoice(userName: string, userId: string, userRole: 'owner' | 'staff'): Invoice {
+function getDefaultInvoice(userName: string, userId: string, userRole: 'owner' | 'staff', invoiceNumber: string): Invoice {
   const today = new Date().toISOString().split('T')[0];
   const due = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
   return {
     id: uuidv4(),
-    invoiceNumber: generateInvoiceNumber(),
+    invoiceNumber,
     status: 'draft',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -77,7 +72,6 @@ function NumberInput({
   const [displayValue, setDisplayValue] = useState(value === 0 ? '' : String(value));
   const [focused, setFocused] = useState(false);
 
-  // Sync from parent when not focused
   useEffect(() => {
     if (!focused) {
       setDisplayValue(value === 0 ? '' : String(value));
@@ -86,7 +80,6 @@ function NumberInput({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    // Allow empty, digits, and decimal point
     if (raw === '' || /^[0-9]*\.?[0-9]*$/.test(raw)) {
       setDisplayValue(raw);
       const num = parseFloat(raw);
@@ -134,14 +127,14 @@ interface InvoiceFormProps {
 
 export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: InvoiceFormProps) {
   const { user } = useAuth();
-  const { addInvoice, updateInvoice, getInvoice, storageMode, firestoreConnected } = useInvoices();
+  const { addInvoice, updateInvoice, getInvoice, getNextInvoiceNumber, storageMode, firestoreConnected } = useInvoices();
 
   const isEditing = !!editInvoiceId;
   const existingInvoice = editInvoiceId ? getInvoice(editInvoiceId) : null;
 
   const [invoice, setInvoice] = useState<Invoice>(() => {
     if (existingInvoice) return { ...existingInvoice };
-    return getDefaultInvoice(user?.name || '', user?.id || '', user?.role || 'staff');
+    return getDefaultInvoice(user?.name || '', user?.id || '', user?.role || 'staff', getNextInvoiceNumber());
   });
 
   const [saved, setSaved] = useState(false);
@@ -220,29 +213,33 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
     setTimeout(() => onPreview(invoice.id), 200);
   };
 
-  const inputClass = "w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all";
+  const inputClass = "w-full px-3 py-3 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all";
   const labelClass = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5";
 
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-6 pb-32">
+    <div className="max-w-5xl mx-auto p-3 sm:p-6 pb-36 sm:pb-32">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
+      <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <button onClick={onBack} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all flex-shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">
-              {isEditing ? 'ပြေစာ ပြင်ဆင်ရန်' : 'ပြေစာ အသစ်ဖန်တီးရန်'}
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-800 truncate">
+              {isEditing ? 'ပြေစာ ပြင်ဆင်ရန်' : 'ပြေစာ အသစ်'}
             </h1>
-            <p className="text-sm text-slate-500">{invoice.invoiceNumber}</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-mono">{invoice.invoiceNumber}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+      </div>
+
+      {/* Sticky save buttons */}
+      <div className="sticky top-14 sm:top-16 z-30 -mx-3 sm:-mx-6 px-3 sm:px-6 py-2 bg-white/90 backdrop-blur-sm border-b border-slate-100 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleSave}
             disabled={saving}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
               saved
                 ? 'bg-green-600 text-white'
                 : saving
@@ -250,17 +247,13 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {saved ? 'သိမ်းပြီး!' : saving ? 'သိမ်းနေသည်...' : 'မူကြမ်းသိမ်းရန်'}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saved ? 'သိမ်းပြီး!' : saving ? 'သိမ်းနေ...' : 'သိမ်းရန်'}
           </button>
           <button
             onClick={handleSaveAndPreview}
             disabled={saving}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500 transition-all shadow-md shadow-indigo-500/20 disabled:opacity-60"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-500 transition-all shadow-md shadow-indigo-500/20 disabled:opacity-60"
           >
             <FileText className="w-4 h-4" />
             သိမ်းပြီး ကြည့်ရန်
@@ -269,7 +262,7 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
       </div>
 
       {/* Storage mode banner */}
-      <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-sm ${
+      <div className={`mb-4 sm:mb-6 p-2.5 sm:p-3 rounded-xl flex items-center gap-2 text-xs sm:text-sm ${
         storageMode === 'firestore' && firestoreConnected
           ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
           : 'bg-slate-50 border border-slate-200 text-slate-600'
@@ -277,27 +270,31 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
         {storageMode === 'firestore' && firestoreConnected ? (
           <>
             <Cloud className="w-4 h-4 flex-shrink-0" />
-            <span><strong>Firebase Firestore</strong> တွင် သိမ်းဆည်းနေသည် — စက်အားလုံးတွင် အချိန်နှင့်တစ်ပြေးညီ sync ဖြစ်သည်။</span>
+            <span><strong>Firestore</strong> — အချိန်နှင့်တစ်ပြေးညီ sync</span>
           </>
         ) : (
           <>
             <HardDrive className="w-4 h-4 flex-shrink-0" />
-            <span><strong>Local Storage</strong> တွင် သိမ်းဆည်းနေသည် — Cloud sync ဖွင့်ရန် Firebase သတ်မှတ်ပါ။</span>
+            <span><strong>Local Storage</strong> — Cloud sync ဖွင့်ရန် Firebase သတ်မှတ်ပါ</span>
           </>
         )}
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Invoice Meta */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-5">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4 sm:mb-5">
             <Hash className="w-4 h-4 text-indigo-600" />
             <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">ပြေစာ အသေးစိတ်</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>ပြေစာ နံပါတ်</label>
-              <input value={invoice.invoiceNumber} onChange={e => updateField('invoiceNumber', e.target.value)} className={inputClass} />
+              <input
+                value={invoice.invoiceNumber}
+                readOnly
+                className={`${inputClass} bg-slate-100 font-mono font-bold text-indigo-700 cursor-not-allowed`}
+              />
             </div>
             <div>
               <label className={labelClass}>အခြေအနေ</label>
@@ -321,9 +318,9 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
               <input type="date" value={invoice.dueDate} onChange={e => updateField('dueDate', e.target.value)} className={inputClass} />
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-3 sm:mt-4">
             <label className={labelClass}>ငွေကြေးအမျိုးအစား</label>
-            <select value={invoice.currency} onChange={e => updateField('currency', e.target.value)} className={`${inputClass} max-w-xs`}>
+            <select value={invoice.currency} onChange={e => updateField('currency', e.target.value)} className={`${inputClass} max-w-full sm:max-w-xs`}>
               {CURRENCIES.map(c => (
                 <option key={c.code} value={c.code}>{c.symbol} {c.code} – {c.name}</option>
               ))}
@@ -332,18 +329,18 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
         </div>
 
         {/* Sender & Client */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 sm:mb-5">
               <Building2 className="w-4 h-4 text-indigo-600" />
-              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">ပို့သူ (သင့်အချက်အလက်)</h2>
+              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">ပို့သူ</h2>
             </div>
             <div className="space-y-3">
               <div>
                 <label className={labelClass}>အမည် / လုပ်ငန်း</label>
                 <input value={invoice.senderName} onChange={e => updateField('senderName', e.target.value)} className={inputClass} placeholder="သင့်လုပ်ငန်းအမည်" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>အီးမေးလ်</label>
                   <input type="email" value={invoice.senderEmail} onChange={e => updateField('senderEmail', e.target.value)} className={inputClass} placeholder="email@company.com" />
@@ -368,8 +365,8 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-5">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 sm:mb-5">
               <User className="w-4 h-4 text-indigo-600" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">လက်ခံသူ (ဖောက်သည်)</h2>
             </div>
@@ -382,7 +379,7 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
                 <label className={labelClass}>ကုမ္ပဏီ</label>
                 <input value={invoice.clientCompany} onChange={e => updateField('clientCompany', e.target.value)} className={inputClass} placeholder="ကုမ္ပဏီအမည်" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>အီးမေးလ်</label>
                   <input type="email" value={invoice.clientEmail} onChange={e => updateField('clientEmail', e.target.value)} className={inputClass} placeholder="client@email.com" />
@@ -405,18 +402,18 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
         </div>
 
         {/* Line Items */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4 sm:mb-5">
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-indigo-600" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">ပစ္စည်းစာရင်း</h2>
             </div>
-            <button onClick={addItem} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-all">
+            <button onClick={addItem} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-all active:scale-95">
               <Plus className="w-3.5 h-3.5" /> ထည့်ရန်
             </button>
           </div>
 
-          {/* Table header - desktop */}
+          {/* Table header - desktop only */}
           <div className="hidden sm:grid grid-cols-12 gap-3 mb-2 px-2">
             <div className="col-span-5 text-xs font-semibold text-slate-400 uppercase">အကြောင်းအရာ</div>
             <div className="col-span-2 text-xs font-semibold text-slate-400 uppercase">အရေအတွက်</div>
@@ -427,10 +424,21 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
 
           <div className="space-y-3">
             {invoice.items.map((item, idx) => (
-              <div key={item.id} className="bg-slate-50 rounded-xl p-3">
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                  <div className="sm:col-span-5">
-                    <label className="sm:hidden text-xs font-semibold text-slate-400 uppercase mb-1 block">အကြောင်းအရာ</label>
+              <div key={item.id} className="bg-slate-50 rounded-xl p-3 sm:p-3">
+                {/* Mobile: card layout */}
+                <div className="sm:hidden space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">#{idx + 1}</span>
+                    <button
+                      onClick={() => removeItem(idx)}
+                      disabled={invoice.items.length <= 1}
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-30 active:scale-95"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 uppercase mb-1 block">အကြောင်းအရာ</label>
                     <input
                       value={item.description}
                       onChange={e => updateItem(idx, 'description', e.target.value)}
@@ -438,8 +446,46 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
                       placeholder="ပစ္စည်း အကြောင်းအရာ"
                     />
                   </div>
-                  <div className="sm:col-span-2">
-                    <label className="sm:hidden text-xs font-semibold text-slate-400 uppercase mb-1 block">အရေအတွက်</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-400 uppercase mb-1 block">အရေအတွက်</label>
+                      <NumberInput
+                        value={item.quantity}
+                        onChange={val => updateItem(idx, 'quantity', val)}
+                        min={0}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-400 uppercase mb-1 block">နှုန်း</label>
+                      <NumberInput
+                        value={item.rate}
+                        onChange={val => updateItem(idx, 'rate', val)}
+                        min={0}
+                        step="0.01"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                    <span className="text-xs font-semibold text-slate-400 uppercase">ပမာဏ</span>
+                    <span className="text-base font-bold text-indigo-600">
+                      {formatCurrency(item.quantity * item.rate, invoice.currency)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Desktop: grid layout */}
+                <div className="hidden sm:grid grid-cols-12 gap-3 items-center">
+                  <div className="col-span-5">
+                    <input
+                      value={item.description}
+                      onChange={e => updateItem(idx, 'description', e.target.value)}
+                      className={inputClass}
+                      placeholder="ပစ္စည်း အကြောင်းအရာ"
+                    />
+                  </div>
+                  <div className="col-span-2">
                     <NumberInput
                       value={item.quantity}
                       onChange={val => updateItem(idx, 'quantity', val)}
@@ -447,8 +493,7 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
                       className={inputClass}
                     />
                   </div>
-                  <div className="sm:col-span-2">
-                    <label className="sm:hidden text-xs font-semibold text-slate-400 uppercase mb-1 block">နှုန်း</label>
+                  <div className="col-span-2">
                     <NumberInput
                       value={item.rate}
                       onChange={val => updateItem(idx, 'rate', val)}
@@ -457,13 +502,12 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
                       className={inputClass}
                     />
                   </div>
-                  <div className="sm:col-span-2 text-right">
-                    <label className="sm:hidden text-xs font-semibold text-slate-400 uppercase mb-1 block">ပမာဏ</label>
+                  <div className="col-span-2 text-right">
                     <span className="text-sm font-semibold text-slate-700">
                       {formatCurrency(item.quantity * item.rate, invoice.currency)}
                     </span>
                   </div>
-                  <div className="sm:col-span-1 flex justify-end">
+                  <div className="col-span-1 flex justify-end">
                     <button
                       onClick={() => removeItem(idx)}
                       disabled={invoice.items.length <= 1}
@@ -479,34 +523,34 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
 
           {/* Totals */}
           <div className="mt-6 flex justify-end">
-            <div className="w-full max-w-sm space-y-3">
+            <div className="w-full sm:max-w-sm space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">ခွဲစုစုပေါင်း</span>
                 <span className="font-medium text-slate-700">{formatCurrency(calculations.subtotal, invoice.currency)}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 text-sm text-slate-500">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1 text-sm text-slate-500 whitespace-nowrap">
                   <Percent className="w-3 h-3" /> အခွန်
                 </div>
                 <NumberInput
                   value={invoice.taxRate}
                   onChange={val => updateField('taxRate', val)}
                   min={0}
-                  className="w-20 px-2 py-1 text-sm border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-16 sm:w-20 px-2 py-2 sm:py-1 text-sm border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <span className="ml-auto text-sm font-medium text-slate-700">
                   +{formatCurrency(calculations.taxAmount, invoice.currency)}
                 </span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 text-sm text-slate-500">
-                  <Percent className="w-3 h-3" /> လျှော့စျေး
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1 text-sm text-slate-500 whitespace-nowrap">
+                  <Percent className="w-3 h-3" /> လျှော့
                 </div>
                 <NumberInput
                   value={invoice.discountRate}
                   onChange={val => updateField('discountRate', val)}
                   min={0}
-                  className="w-20 px-2 py-1 text-sm border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-16 sm:w-20 px-2 py-2 sm:py-1 text-sm border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <span className="ml-auto text-sm font-medium text-red-500">
                   -{formatCurrency(calculations.discountAmount, invoice.currency)}
@@ -514,10 +558,10 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
               </div>
               <div className="border-t border-slate-200 pt-3 flex justify-between">
                 <span className="text-base font-bold text-slate-800">စုစုပေါင်း</span>
-                <span className="text-xl font-bold text-indigo-600">{formatCurrency(calculations.total, invoice.currency)}</span>
+                <span className="text-lg sm:text-xl font-bold text-indigo-600">{formatCurrency(calculations.total, invoice.currency)}</span>
               </div>
-              <div className="flex items-center gap-3 pt-2">
-                <div className="flex items-center gap-1 text-sm text-emerald-600 font-medium">
+              <div className="flex items-center gap-2 sm:gap-3 pt-2">
+                <div className="flex items-center gap-1 text-sm text-emerald-600 font-medium whitespace-nowrap">
                   <DollarSign className="w-3 h-3" /> ပေးပြီးငွေ
                 </div>
                 <NumberInput
@@ -525,18 +569,18 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
                   onChange={val => updateField('paidAmount', val)}
                   min={0}
                   step="0.01"
-                  placeholder="0.00"
-                  className="w-28 px-2 py-1 text-sm border border-emerald-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-emerald-50"
+                  placeholder="0"
+                  className="w-24 sm:w-28 px-2 py-2 sm:py-1 text-sm border border-emerald-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-emerald-50"
                 />
                 <span className="ml-auto text-sm font-medium text-emerald-600">
                   {formatCurrency(invoice.paidAmount, invoice.currency)}
                 </span>
               </div>
               <div className={`border-t-2 pt-3 flex justify-between ${calculations.balanceDue <= 0 ? 'border-emerald-300' : 'border-red-300'}`}>
-                <span className={`text-base font-bold ${calculations.balanceDue <= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                <span className={`text-sm sm:text-base font-bold ${calculations.balanceDue <= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                   {calculations.balanceDue <= 0 ? '✓ အပြည့်ပေးပြီး' : 'ကျန်ငွေ'}
                 </span>
-                <span className={`text-xl font-bold ${calculations.balanceDue <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                <span className={`text-lg sm:text-xl font-bold ${calculations.balanceDue <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {formatCurrency(Math.max(0, calculations.balanceDue), invoice.currency)}
                 </span>
               </div>
@@ -545,8 +589,8 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
         </div>
 
         {/* Notes & Terms */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <StickyNote className="w-4 h-4 text-indigo-600" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">မှတ်ချက်</h2>
@@ -554,11 +598,11 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
             <textarea
               value={invoice.notes}
               onChange={e => updateField('notes', e.target.value)}
-              className={`${inputClass} min-h-[100px] resize-y`}
+              className={`${inputClass} min-h-[80px] sm:min-h-[100px] resize-y`}
               placeholder="ဖောက်သည်အတွက် ထပ်ဆောင်းမှတ်ချက်များ..."
             />
           </div>
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="w-4 h-4 text-indigo-600" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">စည်းကမ်းချက်များ</h2>
@@ -566,7 +610,7 @@ export default function InvoiceForm({ editInvoiceId, onBack, onPreview }: Invoic
             <textarea
               value={invoice.terms}
               onChange={e => updateField('terms', e.target.value)}
-              className={`${inputClass} min-h-[100px] resize-y`}
+              className={`${inputClass} min-h-[80px] sm:min-h-[100px] resize-y`}
               placeholder="ပေးချေမှု စည်းကမ်းချက်များ..."
             />
           </div>

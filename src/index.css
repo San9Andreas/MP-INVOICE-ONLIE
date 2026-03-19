@@ -2,11 +2,13 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
 /* Custom scrollbar */
@@ -32,17 +34,36 @@ textarea:focus {
   outline: none;
 }
 
+/* Mobile: prevent zooming on input focus (iOS Safari) */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Touch feedback */
+@media (hover: none) {
+  button:active {
+    opacity: 0.85;
+  }
+}
+
+/* Safe area for notch devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* ============================
    PRINT STYLES — Single Page Voucher
    ============================ */
 @media print {
-  /* Page setup — no margins, fit to page */
   @page {
     size: A4;
     margin: 8mm;
   }
 
-  /* Reset html/body for print */
   html, body {
     width: 100% !important;
     height: auto !important;
@@ -50,26 +71,21 @@ textarea:focus {
     padding: 0 !important;
     background: white !important;
     overflow: visible !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
-  /* Hide EVERYTHING by default */
-  body > * {
+  /* Hide everything except the invoice document */
+  nav,
+  [data-print-hide],
+  .print\:hidden {
     display: none !important;
   }
 
-  /* Show only the print container */
-  #print-root {
-    display: block !important;
-    position: static !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  /* The invoice document itself */
+  /* Make the invoice fill the page */
   #invoice-print-doc {
-    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -77,33 +93,22 @@ textarea:focus {
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
-    page-break-inside: avoid !important;
-    page-break-after: avoid !important;
-    page-break-before: avoid !important;
     break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
-  /* Prevent any page breaks inside children */
-  #invoice-print-doc * {
-    page-break-inside: avoid !important;
+  /* Shrink to fit one page */
+  main,
+  main > div {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* No page breaks inside elements */
+  div, table, tr, td, th {
     break-inside: avoid !important;
-  }
-
-  /* Hide toolbar, banners, navs etc */
-  nav,
-  .print-hide,
-  .print\:hidden,
-  [data-print-hide] {
-    display: none !important;
-  }
-
-  /* Ensure tables don't break */
-  table {
     page-break-inside: avoid !important;
-  }
-
-  /* Compact spacing for print */
-  #invoice-print-doc [data-print-compact] {
-    padding: 12px !important;
   }
 }
